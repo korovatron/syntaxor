@@ -392,40 +392,115 @@ function measureTermWidth(label) {
   return Math.max(68, label.length * 8 + 30);
 }
 
-function buildCurvePath(startX, startY, endX, endY) {
-  const deltaX = endX - startX;
-  const controlOffset = Math.max(22, Math.abs(deltaX) * 0.45);
+function buildOrthogonalPath(startX, startY, endX, endY) {
+  const bendX = Math.round((startX + endX) / 2);
   return [
     `M ${startX} ${startY}`,
-    `C ${startX + controlOffset} ${startY}, ${endX - controlOffset} ${endY}, ${endX} ${endY}`
+    `H ${bendX}`,
+    `V ${endY}`,
+    `H ${endX}`
   ].join(" ");
 }
 
+function buildArrowOnSegment(startX, startY, endX, endY, position = 0.5) {
+  const deltaX = endX - startX;
+  const deltaY = endY - startY;
+  const length = Math.hypot(deltaX, deltaY);
+  if (length < 1) {
+    return "";
+  }
+
+  const unitX = deltaX / length;
+  const unitY = deltaY / length;
+  const clampedPosition = Math.max(0.12, Math.min(0.88, position));
+  const anchorX = startX + deltaX * clampedPosition;
+  const anchorY = startY + deltaY * clampedPosition;
+  const arrowSpan = Math.max(10, Math.min(16, length * 0.45));
+  const halfSpan = arrowSpan / 2;
+  const arrowStartX = anchorX - unitX * halfSpan;
+  const arrowStartY = anchorY - unitY * halfSpan;
+  const arrowEndX = anchorX + unitX * halfSpan;
+  const arrowEndY = anchorY + unitY * halfSpan;
+
+  return `<line class="rail-arrow" x1="${arrowStartX.toFixed(2)}" y1="${arrowStartY.toFixed(2)}" x2="${arrowEndX.toFixed(2)}" y2="${arrowEndY.toFixed(2)}" />`;
+}
+
+function buildMidArrowForOrthogonalPath(startX, startY, endX, endY) {
+  const bendX = Math.round((startX + endX) / 2);
+  const segments = [
+    { startX, startY, endX: bendX, endY: startY },
+    { startX: bendX, startY, endX: bendX, endY },
+    { startX: bendX, startY: endY, endX, endY }
+  ].filter((segment) => Math.hypot(segment.endX - segment.startX, segment.endY - segment.startY) > 0.1);
+
+  const lengths = segments.map((segment) => Math.hypot(segment.endX - segment.startX, segment.endY - segment.startY));
+  const totalLength = lengths.reduce((sum, value) => sum + value, 0);
+  if (totalLength < 1) {
+    return "";
+  }
+
+  const target = totalLength / 2;
+  let traversed = 0;
+
+  for (let index = 0; index < segments.length; index += 1) {
+    const segmentLength = lengths[index];
+    if (traversed + segmentLength >= target) {
+      const offset = target - traversed;
+      const position = segmentLength < 1 ? 0.5 : offset / segmentLength;
+      const segment = segments[index];
+      return buildArrowOnSegment(segment.startX, segment.startY, segment.endX, segment.endY, position);
+    }
+    traversed += segmentLength;
+  }
+
+  const fallback = segments[segments.length - 1];
+  return buildArrowOnSegment(fallback.startX, fallback.startY, fallback.endX, fallback.endY, 0.5);
+}
+
+function buildVerticalMergeArrowForOrthogonalPath(startX, startY, endX, endY) {
+  if (Math.abs(startY - endY) < 0.1) {
+    return "";
+  }
+  const bendX = Math.round((startX + endX) / 2);
+  return buildArrowOnSegment(bendX, startY, bendX, endY, 0.35);
+}
+
 function detectLoopPattern(ruleName, alternatives) {
-  if (alternatives.length !== 2) return null;
-
-  const [alt1, alt2] = alternatives;
-
   function same(a, b) {
     return a.type === b.type && a.value === b.value;
   }
 
-  if (
-    alt2.length === alt1.length + 1 &&
-    alt2[alt2.length - 1].type === "nonterminal" &&
-    alt2[alt2.length - 1].value === ruleName &&
-    alt1.every((term, i) => same(term, alt2[i]))
-  ) {
-    return alt1;
+  // Pattern A: simple or separated loop (exactly 2 alternatives, one is a prefix of the other + self-ref)
+  if (alternatives.length === 2) {
+    const [alt1, alt2] = alternatives;
+
+    if (
+      alt2.length > alt1.length &&
+      alt2[alt2.length - 1].type === "nonterminal" &&
+      alt2[alt2.length - 1].value === ruleName &&
+      alt1.every((term, i) => same(term, alt2[i]))
+    ) {
+      return { type: "simple", base: alt1, separator: alt2.slice(alt1.length, alt2.length - 1) };
+    }
+
+    if (
+      alt1.length > alt2.length &&
+      alt1[alt1.length - 1].type === "nonterminal" &&
+      alt1[alt1.length - 1].value === ruleName &&
+      alt2.every((term, i) => same(term, alt1[i]))
+    ) {
+      return { type: "simple", base: alt2, separator: alt1.slice(alt2.length, alt1.length - 1) };
+    }
   }
 
-  if (
-    alt1.length === alt2.length + 1 &&
-    alt1[alt1.length - 1].type === "nonterminal" &&
-    alt1[alt1.length - 1].value === ruleName &&
-    alt2.every((term, i) => same(term, alt1[i]))
-  ) {
-    return alt2;
+  // Pattern B: one epsilon alternative + one or more recursive alternatives (each ending in self-ref)
+  const isEpsilon = (alt) => alt.length === 0 || (alt.length === 1 && alt[0].type === "epsilon");
+  const isRecursive = (alt) => alt.length > 0 && alt[alt.length - 1].type === "nonterminal" && alt[alt.length - 1].value === ruleName;
+  const epsilonAlts = alternatives.filter(isEpsilon);
+  const recursiveAlts = alternatives.filter(isRecursive);
+
+  if (epsilonAlts.length === 1 && recursiveAlts.length >= 1 && epsilonAlts.length + recursiveAlts.length === alternatives.length) {
+    return { type: "multi", bodyAlternatives: recursiveAlts.map((alt) => alt.slice(0, alt.length - 1)) };
   }
 
   return null;
@@ -457,28 +532,86 @@ export function renderDiagramSvg(grammar, singleRule) {
     const alternatives = grammar.rules.get(ruleName) || [];
     const ruleTop = totalHeight;
     const branchTop = ruleTop + titleGap;
-    const loopBase = detectLoopPattern(ruleName, alternatives);
+    const loopPattern = detectLoopPattern(ruleName, alternatives);
 
-    if (loopBase !== null) {
+    if (loopPattern !== null && loopPattern.type === "multi") {
+      const { bodyAlternatives } = loopPattern;
+      const preparedBodies = bodyAlternatives.map((sequence) => {
+        const terms = sequence.length === 0 ? [{ type: "epsilon", value: "\u03b5" }] : sequence;
+        const widths = terms.map((term) => {
+          const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "\u03b5" : `\u201c${term.value}\u201d`;
+          return { label, width: measureTermWidth(label), term };
+        });
+        const seqW = widths.reduce((total, item, index) => total + item.width + (index < widths.length - 1 ? 24 : 0), 0);
+        return { terms: widths, width: seqW };
+      });
+      const bodyMaxWidth = preparedBodies.reduce((max, b) => Math.max(max, b.width), 0);
+      const mainLaneY = branchTop;
+      const joinOutX = laneStartX + bodyMaxWidth + laneExitGap + 60;
+      const endX = joinOutX + endCapGap;
+      const bodyGap = 58;
+      const bodyLaneYs = preparedBodies.map((_, i) => mainLaneY + bodyGap + i * laneGap);
+      const deepestLoopY = bodyLaneYs[bodyLaneYs.length - 1] || mainLaneY;
+
+      body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
+      // Main pass-through (the epsilon alternative) - single unbroken horizontal
+      body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
+      body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, endX - 16, mainLaneY);
+      // Left and right vertical spines shared by all loop arcs
+      body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${mainLaneY} V ${deepestLoopY}" />`;
+      body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${mainLaneY} V ${deepestLoopY}" />`;
+
+      preparedBodies.forEach((prepared, index) => {
+        const loopY = bodyLaneYs[index];
+        // Left stub: from left spine to first term
+        body += `<line class="rail-line rail-line-alt" x1="${joinX}" y1="${loopY}" x2="${laneStartX}" y2="${loopY}" />`;
+        let cursorX = laneStartX;
+        prepared.terms.forEach(({ term, label, width }, termIndex) => {
+          const boxX = cursorX;
+          const boxY = loopY - 17;
+          const boxClass = term.type === "nonterminal" ? "rail-node-nonterminal" : term.type === "epsilon" ? "rail-node-epsilon" : "rail-node-terminal";
+          const labelClass = term.type === "nonterminal" ? "rail-label-nonterminal" : term.type === "epsilon" ? "rail-label-epsilon" : "rail-label-terminal";
+          const radius = term.type === "nonterminal" ? 8 : 18;
+          body += `<rect class="${boxClass}" x="${boxX}" y="${boxY}" width="${width}" height="34" rx="${radius}" ry="${radius}" />`;
+          body += `<text class="${labelClass}" x="${boxX + width / 2}" y="${loopY}" text-anchor="middle">${escapeXml(label)}</text>`;
+          cursorX += width;
+          if (termIndex < prepared.terms.length - 1) {
+            body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${cursorX + 24}" y2="${loopY}" />`;
+            cursorX += 24;
+          }
+        });
+        // Right stub: from last term to right spine (padded to bodyMaxWidth for alignment)
+        body += `<line class="rail-line rail-line-alt" x1="${cursorX + laneExitGap}" y1="${loopY}" x2="${joinOutX}" y2="${loopY}" />`;
+        // Arrow pointing left (loop-back direction)
+        body += buildArrowOnSegment(cursorX + laneExitGap, loopY, joinX, loopY);
+      });
+
+      totalHeight = deepestLoopY + ruleGap;
+      maxWidth.value = Math.max(maxWidth.value, endX + 44);
+    } else if (loopPattern !== null) {
+      const { base: loopBase, separator: loopSeparator } = loopPattern;
       const baseTerms = loopBase.length === 0 ? [{ type: "epsilon", value: "ε" }] : loopBase;
       const termWidths = baseTerms.map((term) => {
         const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `\u201c${term.value}\u201d`;
         return { label, width: measureTermWidth(label), term };
       });
       const seqWidth = termWidths.reduce((total, item, index) => total + item.width + (index < termWidths.length - 1 ? 24 : 0), 0);
+      const loopSepWidths = loopSeparator.map((term) => {
+        const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `\u201c${term.value}\u201d`;
+        return { label, width: measureTermWidth(label), term };
+      });
+      const sepTotalWidth = loopSepWidths.reduce((total, item, index) => total + item.width + (index > 0 ? 24 : 0), 0);
       const mainLaneY = branchTop;
       const joinOutX = laneStartX + seqWidth + laneExitGap + 60;
       const endX = joinOutX + endCapGap;
-      const loopDepth = 58;
+      const loopDepth = loopSeparator.length > 0 ? 78 : 58;
       const loopY = mainLaneY + loopDepth;
 
       body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
-      body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${joinX}" y2="${mainLaneY}" />`;
-      body += `<circle class="rail-dot-start" cx="${joinX - incomingLead - 10}" cy="${mainLaneY}" r="6" />`;
-      body += `<line class="rail-line" x1="${joinOutX}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
-      body += `<circle class="rail-dot-end" cx="${endX}" cy="${mainLaneY}" r="6" />`;
-      body += `<line class="rail-line" x1="${joinX}" y1="${mainLaneY}" x2="${laneStartX}" y2="${mainLaneY}" />`;
-      body += `<line class="rail-line" x1="${laneStartX + seqWidth + laneExitGap}" y1="${mainLaneY}" x2="${joinOutX}" y2="${mainLaneY}" />`;
+      body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${laneStartX}" y2="${mainLaneY}" />`;
+      body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, laneStartX, mainLaneY);
+      body += `<line class="rail-line" x1="${laneStartX + seqWidth + laneExitGap}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
+      body += buildArrowOnSegment(laneStartX + seqWidth + laneExitGap, mainLaneY, endX - 16, mainLaneY);
 
       let cursorX = laneStartX;
       termWidths.forEach(({ term, label, width }, termIndex) => {
@@ -497,14 +630,37 @@ export function renderDiagramSvg(grammar, singleRule) {
       });
 
       body += `<line class="rail-line" x1="${cursorX}" y1="${mainLaneY}" x2="${cursorX + laneExitGap}" y2="${mainLaneY}" />`;
-      const loopMidX = Math.round((joinX + joinOutX) / 2);
-      const arrowY = Math.round(mainLaneY * 0.25 + loopY * 0.75);
-      body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${mainLaneY} C ${joinOutX} ${loopY}, ${joinX} ${loopY}, ${joinX} ${mainLaneY}" />`;
-      body += `<polygon class="rail-loop-arrow" points="${loopMidX - 8},${arrowY} ${loopMidX + 6},${arrowY - 7} ${loopMidX + 6},${arrowY + 7}" />`;
+      body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${mainLaneY} V ${loopY}" />`;
+      body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${loopY} V ${mainLaneY}" />`;
+      if (loopSepWidths.length === 0) {
+        body += `<line class="rail-line rail-line-alt" x1="${joinOutX}" y1="${loopY}" x2="${joinX}" y2="${loopY}" />`;
+        body += buildArrowOnSegment(joinOutX, loopY, joinX, loopY);
+      } else {
+        const arcMidX = Math.round((joinX + joinOutX) / 2);
+        const sepBoxStartX = arcMidX - Math.round(sepTotalWidth / 2);
+        body += `<line class="rail-line rail-line-alt" x1="${joinOutX}" y1="${loopY}" x2="${sepBoxStartX}" y2="${loopY}" />`;
+        let sepCursorX = sepBoxStartX;
+        loopSepWidths.forEach(({ term, label, width }, sepIndex) => {
+          const boxX = sepCursorX;
+          const boxY = loopY - 17;
+          const boxClass = term.type === "nonterminal" ? "rail-node-nonterminal" : term.type === "epsilon" ? "rail-node-epsilon" : "rail-node-terminal";
+          const labelClass = term.type === "nonterminal" ? "rail-label-nonterminal" : term.type === "epsilon" ? "rail-label-epsilon" : "rail-label-terminal";
+          const radius = term.type === "nonterminal" ? 8 : 18;
+          body += `<rect class="${boxClass}" x="${boxX}" y="${boxY}" width="${width}" height="34" rx="${radius}" ry="${radius}" />`;
+          body += `<text class="${labelClass}" x="${boxX + width / 2}" y="${loopY}" text-anchor="middle">${escapeXml(label)}</text>`;
+          sepCursorX += width;
+          if (sepIndex < loopSepWidths.length - 1) {
+            body += `<line class="rail-line rail-line-alt" x1="${sepCursorX}" y1="${loopY}" x2="${sepCursorX + 24}" y2="${loopY}" />`;
+            sepCursorX += 24;
+          }
+        });
+        body += `<line class="rail-line rail-line-alt" x1="${sepCursorX}" y1="${loopY}" x2="${joinX}" y2="${loopY}" />`;
+        body += buildArrowOnSegment(sepCursorX, loopY, joinX, loopY);
+      }
 
       totalHeight = loopY + ruleGap;
       maxWidth.value = Math.max(maxWidth.value, endX + 44);
-    } else {
+    } else if (loopPattern === null) {
       const laneYs = alternatives.map((_, index) => branchTop + index * laneGap);
       const mainLaneY = laneYs[Math.floor((laneYs.length - 1) / 2)] || branchTop;
       body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
@@ -518,25 +674,31 @@ export function renderDiagramSvg(grammar, singleRule) {
         return { terms: widths, width: sequenceWidth };
       });
       const longestSequence = preparedAlternatives.reduce((widest, alternative) => Math.max(widest, alternative.width), 0);
-      const joinOutX = laneStartX + longestSequence + laneExitGap + 60;
+      const laneMergeX = laneStartX + longestSequence + laneExitGap;
+      const joinOutX = laneMergeX + 60;
       const endX = joinOutX + endCapGap;
       const branchBottom = branchTop + Math.max(0, alternatives.length - 1) * laneGap;
-
-      body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${joinX}" y2="${mainLaneY}" />`;
-      body += `<circle class="rail-dot-start" cx="${joinX - incomingLead - 10}" cy="${mainLaneY}" r="6" />`;
-      body += `<line class="rail-line" x1="${joinOutX}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
-      body += `<circle class="rail-dot-end" cx="${endX}" cy="${mainLaneY}" r="6" />`;
+      const nonMainLaneYs = laneYs.filter((laneY) => laneY !== mainLaneY);
+      const topMergeLaneY = nonMainLaneYs.length ? Math.min(...nonMainLaneYs) : null;
+      const bottomMergeLaneY = nonMainLaneYs.length ? Math.max(...nonMainLaneYs) : null;
 
       preparedAlternatives.forEach((prepared, index) => {
         const laneY = laneYs[index];
         let cursorX = laneStartX;
 
         if (laneY === mainLaneY) {
-          body += `<line class="rail-line" x1="${joinX}" y1="${laneY}" x2="${laneStartX}" y2="${laneY}" />`;
-          body += `<line class="rail-line" x1="${cursorX + prepared.width + laneExitGap}" y1="${laneY}" x2="${joinOutX}" y2="${laneY}" />`;
+          body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${laneY}" x2="${laneStartX}" y2="${laneY}" />`;
+          body += buildArrowOnSegment(joinX - incomingLead, laneY, laneStartX, laneY);
+          body += `<line class="rail-line" x1="${cursorX + prepared.width + laneExitGap}" y1="${laneY}" x2="${laneMergeX}" y2="${laneY}" />`;
+          body += `<line class="rail-line" x1="${laneMergeX}" y1="${laneY}" x2="${endX - 16}" y2="${laneY}" />`;
+          body += buildArrowOnSegment(laneMergeX, laneY, endX - 16, laneY);
         } else {
-          body += `<path class="rail-line rail-line-alt" d="${buildCurvePath(joinX, mainLaneY, laneStartX, laneY)}" />`;
-          body += `<path class="rail-line rail-line-alt" d="${buildCurvePath(cursorX + prepared.width + laneExitGap, laneY, joinOutX, mainLaneY)}" />`;
+          body += `<path class="rail-line rail-line-alt" d="${buildOrthogonalPath(joinX, mainLaneY, laneStartX, laneY)}" />`;
+          body += `<line class="rail-line rail-line-alt" x1="${cursorX + prepared.width + laneExitGap}" y1="${laneY}" x2="${laneMergeX}" y2="${laneY}" />`;
+          body += `<path class="rail-line rail-line-alt" d="${buildOrthogonalPath(laneMergeX, laneY, joinOutX, mainLaneY)}" />`;
+          if (laneY === topMergeLaneY || laneY === bottomMergeLaneY) {
+            body += buildVerticalMergeArrowForOrthogonalPath(laneMergeX, laneY, joinOutX, mainLaneY);
+          }
         }
 
         prepared.terms.forEach(({ term, label, width }, termIndex) => {
@@ -574,6 +736,9 @@ export function renderDiagramSvg(grammar, singleRule) {
 
   const defs = [
     '<defs>',
+    '  <marker id="railChevron" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10.8" refY="6" orient="auto" markerUnits="userSpaceOnUse">',
+    '    <path d="M 2 1 L 11 6 L 2 11" fill="none" stroke="#ffd86b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />',
+    '  </marker>',
     '  <pattern id="railGrid" width="28" height="28" patternUnits="userSpaceOnUse">',
     '    <path d="M 28 0 L 0 0 0 28" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />',
     '  </pattern>',

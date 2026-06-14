@@ -555,14 +555,21 @@ textarea {
 .rail-line {
   fill: none;
   stroke: var(--rail);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.28));
+  stroke-width: 3;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
 }
 
 .rail-line-alt {
   stroke: var(--rail);
+}
+
+.rail-arrow {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1;
+  stroke-linecap: round;
+  marker-end: url(#railChevron);
 }
 
 .rail-node-terminal {
