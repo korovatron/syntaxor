@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Syntaxor - BNF Grammar Lab</title>
+  <meta
+    name="description"
+    content="Syntaxor lets students write BNF rules, test strings against those rules, and inspect the generated syntax diagram."
+  />
+  <meta name="theme-color" content="#000000" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="dark">
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">&lt;/&gt;</div>
+        <div class="brand-text">
+          <h1>Syntaxor <span class="brand-tagline">BNF Grammar Lab</span></h1>
+          <p>Write rules, test strings, inspect the diagram.</p>
+        </div>
+      </div>
+      <div class="status-chip" id="workspaceStatus">Ready.</div>
+    </header>
+
+    <main class="layout">
+      <section class="editor-panel card">
+        <div class="panel-head">
+          <h2>Grammar Workspace</h2>
+          <div class="panel-actions compact action-stack">
+            <label class="inline-label" for="exampleSelect">Example</label>
+            <select id="exampleSelect"></select>
+            <button id="loadExampleBtn" type="button">Load</button>
+            <button id="resetGrammarBtn" type="button">Reset</button>
+          </div>
+        </div>
+
+        <label class="field-label" for="grammarInput">BNF rules</label>
+        <div class="grammar-editor">
+          <pre id="grammarHighlight" class="grammar-highlight" aria-hidden="true"></pre>
+          <textarea
+            id="grammarInput"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder="&lt;digit&gt; ::= &quot;0&quot; | &quot;1&quot; | &quot;2&quot;"
+          ></textarea>
+        </div>
+        <p class="panel-note">
+          Use angle brackets for non-terminals and quotes for terminals. Empty string can be written as
+          <span class="code-pill">&quot;&quot;</span> or <span class="code-pill">ε</span>.
+        </p>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">Start rule</span>
+            <select id="startSymbolSelect" class="summary-select" aria-label="Start rule" disabled>
+              <option value="">-</option>
+            </select>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Rules</span>
+            <strong id="ruleCountValue">0</strong>
+          </article>
+          <article class="summary-card summary-card-wide">
+            <span class="summary-label">Terminals</span>
+            <div id="terminalsValue" class="token-list"></div>
+          </article>
+          <article class="summary-card summary-card-wide">
+            <span class="summary-label">Warnings</span>
+            <div id="warningsValue" class="message-list muted-copy">No warnings.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="diagram-panel card">
+        <div class="panel-head">
+          <h2>Syntax Diagram</h2>
+          <div class="panel-actions compact">
+            <label class="inline-label" for="diagramRuleSelect">Rule</label>
+            <select id="diagramRuleSelect" disabled>
+              <option value="">-</option>
+            </select>
+            <button id="refreshDiagramBtn" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="diagram-frame">
+          <svg id="diagram" viewBox="0 0 960 420" preserveAspectRatio="xMinYMin meet" aria-label="Syntax diagram"></svg>
+          <div id="diagramEmptyState" class="diagram-empty-state" hidden>
+            Enter a valid grammar to build the diagram.
+          </div>
+        </div>
+      </section>
+
+      <section class="tester-panel card">
+        <div class="panel-head">
+          <h2>String Tester</h2>
+          <div class="panel-actions compact">
+            <button id="runTestBtn" type="button">Test string</button>
+          </div>
+        </div>
+
+        <div class="tester-grid">
+          <div>
+            <label class="field-label" for="testInput">Candidate string</label>
+            <input id="testInput" type="text" spellcheck="false" autocomplete="off" />
+            <p class="panel-note">The matcher checks the full string from the start symbol.</p>
+          </div>
+          <div>
+            <span class="field-label">Sample strings</span>
+            <div id="sampleButtons" class="sample-buttons"></div>
+          </div>
+        </div>
+
+        <div class="result-strip" id="resultStrip">
+          <div class="result-badge neutral" id="resultBadge">Awaiting test</div>
+          <div class="result-copy" id="resultCopy">Load or write a grammar, then test a string.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
