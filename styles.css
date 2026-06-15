@@ -554,22 +554,37 @@ textarea {
 
 .rail-line {
   fill: none;
-  stroke: var(--rail);
+  stroke: #ffd86b;
   stroke-width: 3;
   stroke-linecap: butt;
   stroke-linejoin: miter;
 }
 
 .rail-line-alt {
-  stroke: var(--rail);
+  stroke: #ffd86b;
 }
 
-.rail-arrow {
+.rail-flow {
   fill: none;
-  stroke: transparent;
-  stroke-width: 1;
+  stroke: #000000;
+  stroke-width: 2.8;
   stroke-linecap: round;
-  marker-end: url(#railChevron);
+  stroke-linejoin: round;
+  stroke-dasharray: 14 8;
+  filter: none;
+  mix-blend-mode: normal;
+  animation: rail-flow 1.05s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rail-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -44;
+  }
 }
 
 .rail-node-terminal {

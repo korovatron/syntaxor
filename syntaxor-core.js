@@ -403,26 +403,13 @@ function buildOrthogonalPath(startX, startY, endX, endY) {
 }
 
 function buildArrowOnSegment(startX, startY, endX, endY, position = 0.5) {
-  const deltaX = endX - startX;
-  const deltaY = endY - startY;
-  const length = Math.hypot(deltaX, deltaY);
-  if (length < 1) {
-    return "";
-  }
-
-  const unitX = deltaX / length;
-  const unitY = deltaY / length;
-  const clampedPosition = Math.max(0.12, Math.min(0.88, position));
-  const anchorX = startX + deltaX * clampedPosition;
-  const anchorY = startY + deltaY * clampedPosition;
-  const arrowSpan = Math.max(10, Math.min(16, length * 0.45));
-  const halfSpan = arrowSpan / 2;
-  const arrowStartX = anchorX - unitX * halfSpan;
-  const arrowStartY = anchorY - unitY * halfSpan;
-  const arrowEndX = anchorX + unitX * halfSpan;
-  const arrowEndY = anchorY + unitY * halfSpan;
-
-  return `<line class="rail-arrow" x1="${arrowStartX.toFixed(2)}" y1="${arrowStartY.toFixed(2)}" x2="${arrowEndX.toFixed(2)}" y2="${arrowEndY.toFixed(2)}" />`;
+  void startX;
+  void startY;
+  void endX;
+  void endY;
+  void position;
+  // Legacy chevrons removed: directional cue is now provided by animated rail flow.
+  return "";
 }
 
 function buildMidArrowForOrthogonalPath(startX, startY, endX, endY) {
@@ -593,10 +580,8 @@ export function renderDiagramSvg(grammar, singleRule) {
             cursorX += 24;
           }
         });
-        // Pad to max width: draw connector line from end of terms to the full width position
-        body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${bodyEndX}" y2="${loopY}" />`;
-        // Right stub: from padded end to right spine
-        body += `<line class="rail-line rail-line-alt" x1="${bodyEndX}" y1="${loopY}" x2="${rightUpX}" y2="${loopY}" />`;
+        // Single continuous run to the right rail avoids visible seam artefacts on shorter rows.
+        body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${rightUpX}" y2="${loopY}" />`;
         // Body lanes flow left-to-right; return flow is handled by shared bottom rail.
         body += buildArrowOnSegment(laneStartX, loopY, rightUpX, loopY);
       });
@@ -755,9 +740,6 @@ export function renderDiagramSvg(grammar, singleRule) {
 
   const defs = [
     '<defs>',
-    '  <marker id="railChevron" viewBox="0 0 12 12" markerWidth="12" markerHeight="12" refX="10.8" refY="6" orient="auto" markerUnits="userSpaceOnUse">',
-    '    <path d="M 2 1 L 11 6 L 2 11" fill="none" stroke="#ffd86b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />',
-    '  </marker>',
     '  <pattern id="railGrid" width="28" height="28" patternUnits="userSpaceOnUse">',
     '    <path d="M 28 0 L 0 0 0 28" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />',
     '  </pattern>',
@@ -776,9 +758,14 @@ export function renderDiagramSvg(grammar, singleRule) {
     '</defs>'
   ].join("");
 
+  const animatedBody = body.replace(
+    /<(line|path) class="rail-line([^"]*)"([^>]*)\/>/g,
+    (match, tag, classSuffix, attrs) => `${match}<${tag} class="rail-flow${classSuffix}"${attrs}/>`
+  );
+
   return {
     width: Math.max(320, maxWidth.value),
     height: Math.max(220, totalHeight + 14),
-    markup: `${defs}<rect class="rail-backdrop" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" /><rect class="rail-grid" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" />${body}`
+    markup: `${defs}<rect class="rail-backdrop" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" /><rect class="rail-grid" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" />${animatedBody}`
   };
 }
