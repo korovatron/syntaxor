@@ -457,6 +457,18 @@ function detectLoopPattern(ruleName, alternatives) {
     return a.type === b.type && a.value === b.value;
   }
 
+  // Pattern B: one epsilon alternative + one or more recursive alternatives (each ending in self-ref)
+  // This must be checked first so rules like <number-tail> ::= <digit> <number-tail> | ""
+  // render as an explicit choice instead of collapsing into the simple 2-alt pattern.
+  const isEpsilon = (alt) => alt.length === 0 || (alt.length === 1 && alt[0].type === "epsilon");
+  const isRecursive = (alt) => alt.length > 0 && alt[alt.length - 1].type === "nonterminal" && alt[alt.length - 1].value === ruleName;
+  const epsilonAlts = alternatives.filter(isEpsilon);
+  const recursiveAlts = alternatives.filter(isRecursive);
+
+  if (epsilonAlts.length === 1 && recursiveAlts.length >= 1 && epsilonAlts.length + recursiveAlts.length === alternatives.length) {
+    return { type: "multi", bodyAlternatives: recursiveAlts.map((alt) => alt.slice(0, alt.length - 1)) };
+  }
+
   // Pattern A: simple or separated loop (exactly 2 alternatives, one is a prefix of the other + self-ref)
   if (alternatives.length === 2) {
     const [alt1, alt2] = alternatives;
@@ -478,16 +490,6 @@ function detectLoopPattern(ruleName, alternatives) {
     ) {
       return { type: "simple", base: alt2, separator: alt1.slice(alt2.length, alt1.length - 1) };
     }
-  }
-
-  // Pattern B: one epsilon alternative + one or more recursive alternatives (each ending in self-ref)
-  const isEpsilon = (alt) => alt.length === 0 || (alt.length === 1 && alt[0].type === "epsilon");
-  const isRecursive = (alt) => alt.length > 0 && alt[alt.length - 1].type === "nonterminal" && alt[alt.length - 1].value === ruleName;
-  const epsilonAlts = alternatives.filter(isEpsilon);
-  const recursiveAlts = alternatives.filter(isRecursive);
-
-  if (epsilonAlts.length === 1 && recursiveAlts.length >= 1 && epsilonAlts.length + recursiveAlts.length === alternatives.length) {
-    return { type: "multi", bodyAlternatives: recursiveAlts.map((alt) => alt.slice(0, alt.length - 1)) };
   }
 
   return null;
@@ -545,6 +547,58 @@ export function renderDiagramSvg(grammar, singleRule) {
       const bodyLaneYs = preparedBodies.map((_, i) => mainLaneY + bodyGap + i * laneGap);
       const deepestLoopY = bodyLaneYs[bodyLaneYs.length - 1] || mainLaneY;
       const returnY = deepestLoopY + 34;
+
+      if (preparedBodies.length === 1) {
+        const prepared = preparedBodies[0];
+        const loopY = bodyLaneYs[0];
+        const epsilonLabel = "ε";
+        const epsilonWidth = measureTermWidth(epsilonLabel);
+        const epsilonBoxX = Math.round((leftDownX + rightDownX - epsilonWidth) / 2);
+        const epsilonBoxY = mainLaneY - 17;
+        const epsilonTextX = epsilonBoxX + epsilonWidth / 2;
+
+        body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
+        // Incoming/outgoing rails with explicit top epsilon choice branch.
+        body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${leftDownX}" y2="${mainLaneY}" />`;
+        body += `<line class="rail-line" x1="${rightDownX}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
+        body += `<line class="rail-line rail-line-alt" x1="${leftDownX}" y1="${mainLaneY}" x2="${epsilonBoxX}" y2="${mainLaneY}" />`;
+        body += `<rect class="rail-node-epsilon" x="${epsilonBoxX}" y="${epsilonBoxY}" width="${epsilonWidth}" height="34" rx="18" ry="18" />`;
+        body += `<text class="rail-label-epsilon" x="${epsilonTextX}" y="${mainLaneY}" text-anchor="middle">${epsilonLabel}</text>`;
+        body += `<line class="rail-line rail-line-alt" x1="${epsilonBoxX + epsilonWidth}" y1="${mainLaneY}" x2="${rightDownX}" y2="${mainLaneY}" />`;
+
+        // Recursive alternative: descend to body lane, traverse body, then either exit upward or repeat via bottom loop.
+        body += `<path class="rail-line rail-line-alt" d="M ${leftDownX} ${mainLaneY} V ${loopY}" />`;
+        body += `<path class="rail-line rail-line-alt" d="M ${rightDownX} ${loopY} V ${mainLaneY}" />`;
+
+        body += `<line class="rail-line rail-line-alt" x1="${leftDownX}" y1="${loopY}" x2="${laneStartX}" y2="${loopY}" />`;
+
+        let cursorX = laneStartX;
+        prepared.terms.forEach(({ term, label, width }, termIndex) => {
+          const boxX = cursorX;
+          const boxY = loopY - 17;
+          const boxClass = term.type === "nonterminal" ? "rail-node-nonterminal" : term.type === "epsilon" ? "rail-node-epsilon" : "rail-node-terminal";
+          const labelClass = term.type === "nonterminal" ? "rail-label-nonterminal" : term.type === "epsilon" ? "rail-label-epsilon" : "rail-label-terminal";
+          const radius = term.type === "nonterminal" ? 8 : 18;
+          body += `<rect class="${boxClass}" x="${boxX}" y="${boxY}" width="${width}" height="34" rx="${radius}" ry="${radius}" />`;
+          body += `<text class="${labelClass}" x="${boxX + width / 2}" y="${loopY}" text-anchor="middle">${escapeXml(label)}</text>`;
+          cursorX += width;
+          if (termIndex < prepared.terms.length - 1) {
+            body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${cursorX + 24}" y2="${loopY}" />`;
+            cursorX += 24;
+          }
+        });
+
+        body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${rightDownX}" y2="${loopY}" />`;
+
+        // Bottom repeat loop: after body, return left and re-enter the recursive lane.
+        body += `<path class="rail-line rail-line-alt" d="M ${rightDownX} ${loopY} V ${returnY}" />`;
+        body += `<line class="rail-line rail-line-alt" x1="${rightDownX}" y1="${returnY}" x2="${leftDownX}" y2="${returnY}" />`;
+        body += `<path class="rail-line rail-line-alt" d="M ${leftDownX} ${returnY} V ${loopY}" />`;
+
+        totalHeight = returnY + ruleGap;
+        maxWidth.value = Math.max(maxWidth.value, endX + 44);
+        continue;
+      }
 
       body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
       // Main pass-through (the epsilon alternative) - single unbroken horizontal
