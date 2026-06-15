@@ -503,19 +503,24 @@ export function renderDiagramSvg(grammar, singleRule) {
   const ruleGap = 64;
   const titleGap = 40;
   const incomingLead = 52;
-  const labelGap = 12;
-  const labelReserve = activeRules.reduce((widest, name) => {
-    const estimated = Math.max(70, name.length * 10 + 36);
-    return Math.max(widest, estimated);
-  }, 70);
-  const joinX = Math.max(176, labelReserve + incomingLead + labelGap + 20);
-  const ruleLabelX = joinX - incomingLead - labelGap;
+  const joinX = 92;
+  const canvasSideInset = joinX - incomingLead;
   const laneStartX = joinX + 60;
   const laneExitGap = 26;
   const endCapGap = 38;
   const maxWidth = { value: 0 };
   let totalHeight = 36;
   let body = "";
+  const endpointRadius = 6;
+
+  function appendRuleTitleAndEndpoints(ruleName, ruleTop, mainLaneY, endX) {
+    void ruleName;
+    void ruleTop;
+    const entryX = joinX - incomingLead;
+    const exitX = endX - 16;
+    body += `<circle class="rail-dot-start" cx="${entryX}" cy="${mainLaneY}" r="${endpointRadius}" />`;
+    body += `<circle class="rail-dot-end" cx="${exitX}" cy="${mainLaneY}" r="${endpointRadius}" />`;
+  }
 
   for (const ruleName of activeRules) {
     const alternatives = grammar.rules.get(ruleName) || [];
@@ -557,7 +562,7 @@ export function renderDiagramSvg(grammar, singleRule) {
         const epsilonBoxY = mainLaneY - 17;
         const epsilonTextX = epsilonBoxX + epsilonWidth / 2;
 
-        body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
+        appendRuleTitleAndEndpoints(ruleName, ruleTop, mainLaneY, endX);
         // Incoming/outgoing rails with explicit top epsilon choice branch.
         body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${leftDownX}" y2="${mainLaneY}" />`;
         body += `<line class="rail-line" x1="${rightDownX}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
@@ -596,11 +601,11 @@ export function renderDiagramSvg(grammar, singleRule) {
         body += `<path class="rail-line rail-line-alt" d="M ${leftDownX} ${returnY} V ${loopY}" />`;
 
         totalHeight = returnY + ruleGap;
-        maxWidth.value = Math.max(maxWidth.value, endX + 44);
+        maxWidth.value = Math.max(maxWidth.value, endX + canvasSideInset - 16);
         continue;
       }
 
-      body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
+      appendRuleTitleAndEndpoints(ruleName, ruleTop, mainLaneY, endX);
       // Main pass-through (the epsilon alternative) - single unbroken horizontal
       body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
       body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, endX - 16, mainLaneY);
@@ -645,7 +650,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       body += buildArrowOnSegment(rightDownX, returnY, leftReturnX, returnY);
 
       totalHeight = returnY + ruleGap;
-      maxWidth.value = Math.max(maxWidth.value, endX + 44);
+      maxWidth.value = Math.max(maxWidth.value, endX + canvasSideInset - 16);
     } else if (loopPattern !== null) {
       const { base: loopBase, separator: loopSeparator } = loopPattern;
       const baseTerms = loopBase.length === 0 ? [{ type: "epsilon", value: "ε" }] : loopBase;
@@ -665,7 +670,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       const loopDepth = loopSeparator.length > 0 ? 78 : 58;
       const loopY = mainLaneY + loopDepth;
 
-      body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
+      appendRuleTitleAndEndpoints(ruleName, ruleTop, mainLaneY, endX);
       body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${laneStartX}" y2="${mainLaneY}" />`;
       body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, laneStartX, mainLaneY);
 
@@ -715,11 +720,10 @@ export function renderDiagramSvg(grammar, singleRule) {
       }
 
       totalHeight = loopY + ruleGap;
-      maxWidth.value = Math.max(maxWidth.value, endX + 44);
+      maxWidth.value = Math.max(maxWidth.value, endX + canvasSideInset - 16);
     } else if (loopPattern === null) {
       const laneYs = alternatives.map((_, index) => branchTop + index * laneGap);
       const mainLaneY = laneYs[Math.floor((laneYs.length - 1) / 2)] || branchTop;
-      body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
       const preparedAlternatives = alternatives.map((sequence) => {
         const terms = sequence.length === 0 ? [{ type: "epsilon", value: "ε" }] : sequence;
         const widths = terms.map((term) => {
@@ -733,6 +737,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       const laneMergeX = laneStartX + longestSequence + laneExitGap;
       const joinOutX = laneMergeX + 60;
       const endX = joinOutX + endCapGap;
+      appendRuleTitleAndEndpoints(ruleName, ruleTop, mainLaneY, endX);
       const branchBottom = branchTop + Math.max(0, alternatives.length - 1) * laneGap;
       const nonMainLaneYs = laneYs.filter((laneY) => laneY !== mainLaneY);
 
@@ -793,7 +798,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       });
 
       totalHeight = branchBottom + ruleGap;
-      maxWidth.value = Math.max(maxWidth.value, endX + 44);
+      maxWidth.value = Math.max(maxWidth.value, endX + canvasSideInset - 16);
     }
   }
 

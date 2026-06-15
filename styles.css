@@ -471,6 +471,20 @@ textarea {
   display: block;
 }
 
+.diagram-rule-title {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.015em;
+  color: #f8f3d8;
+  pointer-events: none;
+}
+
 .diagram-empty-state {
   position: absolute;
   inset: 0;
@@ -633,7 +647,7 @@ textarea {
 }
 
 .rail-dot-end {
-  fill: var(--rail-alt);
+  fill: var(--rail);
 }
 
 .rail-loop-arrow {

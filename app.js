@@ -18,6 +18,7 @@ const els = {
   ruleCountValue: document.getElementById("ruleCountValue"),
   terminalsValue: document.getElementById("terminalsValue"),
   warningsValue: document.getElementById("warningsValue"),
+  diagramRuleTitle: document.getElementById("diagramRuleTitle"),
   diagram: document.getElementById("diagram"),
   diagramEmptyState: document.getElementById("diagramEmptyState"),
   sampleButtons: document.getElementById("sampleButtons"),
@@ -197,13 +198,18 @@ function renderDiagram() {
   if (!state.parsed) {
     els.diagram.setAttribute("viewBox", "0 0 960 420");
     els.diagram.innerHTML = "";
+    els.diagramRuleTitle.textContent = "";
+    els.diagramRuleTitle.hidden = true;
     els.diagramEmptyState.hidden = false;
     return;
   }
 
   const diagram = renderDiagramSvg(state.parsed, state.diagramRule);
+  const displayedRule = state.diagramRule || state.parsed.startSymbol;
   els.diagram.setAttribute("viewBox", `0 0 ${diagram.width} ${diagram.height}`);
   els.diagram.innerHTML = diagram.markup;
+  els.diagramRuleTitle.textContent = `<${displayedRule}>`;
+  els.diagramRuleTitle.hidden = false;
   els.diagramEmptyState.hidden = true;
 }
 
