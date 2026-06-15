@@ -296,7 +296,7 @@ textarea {
   margin-right: 16px;
   border-radius: 10px;
   border: 1px solid var(--control-border);
-  background: var(--control-bg);
+  background: #000000;
   overflow: hidden;
 }
 
@@ -348,12 +348,12 @@ textarea {
 }
 
 .hl-nonterminal {
-  color: #7ad8ff;
+  color: #39ff7a;
   font-weight: 600;
 }
 
 .hl-terminal {
-  color: #ffd98e;
+  color: #ff4df3;
 }
 
 .hl-operator,
@@ -481,7 +481,7 @@ textarea {
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.015em;
-  color: #f8f3d8;
+  color: #39ff7a;
   pointer-events: none;
 }
 
@@ -572,7 +572,7 @@ textarea {
 .rail-line {
   fill: none;
   stroke: #ffd86b;
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: butt;
   stroke-linejoin: miter;
 }
@@ -584,13 +584,13 @@ textarea {
 .rail-flow {
   fill: none;
   stroke: #000000;
-  stroke-width: 2.8;
+  stroke-width: 2;
   stroke-linecap: butt;
   stroke-linejoin: miter;
   stroke-dasharray: 14 8;
   filter: none;
   mix-blend-mode: normal;
-  animation: rail-flow 1.05s linear infinite;
+  animation: rail-flow 4s linear infinite;
   pointer-events: none;
 }
 
@@ -612,7 +612,7 @@ textarea {
 
 .rail-node-nonterminal {
   fill: none;
-  stroke: #00f6ff;
+  stroke: #39ff7a;
   stroke-width: 2;
 }
 
@@ -638,7 +638,7 @@ textarea {
 }
 
 .rail-label-nonterminal {
-  fill: #00f6ff;
+  fill: #39ff7a;
 }
 
 .rail-label-terminal {
