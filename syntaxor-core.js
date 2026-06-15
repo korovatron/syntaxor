@@ -547,9 +547,13 @@ export function renderDiagramSvg(grammar, singleRule) {
       });
       const bodyMaxWidth = preparedBodies.reduce((max, b) => Math.max(max, b.width), 0);
       const mainLaneY = branchTop;
+      const spineSplit = 14;
+      const leftReturnX = joinX - spineSplit;
+      const leftDownX = joinX;
       const bodyEndX = laneStartX + bodyMaxWidth;
-      const joinOutX = bodyEndX + laneExitGap + 60;
-      const endX = joinOutX + endCapGap;
+      const rightUpX = bodyEndX + laneExitGap + 60;
+      const rightDownX = rightUpX + spineSplit;
+      const endX = rightDownX + endCapGap;
       const bodyGap = 58;
       const bodyLaneYs = preparedBodies.map((_, i) => mainLaneY + bodyGap + i * laneGap);
       const deepestLoopY = bodyLaneYs[bodyLaneYs.length - 1] || mainLaneY;
@@ -559,14 +563,21 @@ export function renderDiagramSvg(grammar, singleRule) {
       // Main pass-through (the epsilon alternative) - single unbroken horizontal
       body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
       body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, endX - 16, mainLaneY);
-      // Left and right vertical spines shared by all loop arcs and the bottom return
-      body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${mainLaneY} V ${returnY}" />`;
-      body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${mainLaneY} V ${returnY}" />`;
+      // Separate left down/up rails to avoid a bidirectional segment.
+      body += `<path class="rail-line rail-line-alt" d="M ${leftDownX} ${mainLaneY} V ${deepestLoopY}" />`;
+      body += `<path class="rail-line rail-line-alt" d="M ${leftReturnX} ${returnY} V ${mainLaneY}" />`;
+      body += `<line class="rail-line rail-line-alt" x1="${leftReturnX}" y1="${mainLaneY}" x2="${leftDownX}" y2="${mainLaneY}" />`;
+      body += buildArrowOnSegment(leftReturnX, mainLaneY, leftDownX, mainLaneY);
+      // Separate right up/down rails to avoid a bidirectional segment.
+      body += `<path class="rail-line rail-line-alt" d="M ${rightUpX} ${deepestLoopY} V ${mainLaneY}" />`;
+      body += `<path class="rail-line rail-line-alt" d="M ${rightDownX} ${mainLaneY} V ${returnY}" />`;
+      body += `<line class="rail-line rail-line-alt" x1="${rightUpX}" y1="${mainLaneY}" x2="${rightDownX}" y2="${mainLaneY}" />`;
+      body += buildArrowOnSegment(rightUpX, mainLaneY, rightDownX, mainLaneY);
 
       preparedBodies.forEach((prepared, index) => {
         const loopY = bodyLaneYs[index];
         // Left stub: from left spine to first term
-        body += `<line class="rail-line rail-line-alt" x1="${joinX}" y1="${loopY}" x2="${laneStartX}" y2="${loopY}" />`;
+        body += `<line class="rail-line rail-line-alt" x1="${leftDownX}" y1="${loopY}" x2="${laneStartX}" y2="${loopY}" />`;
         let cursorX = laneStartX;
         prepared.terms.forEach(({ term, label, width }, termIndex) => {
           const boxX = cursorX;
@@ -585,14 +596,14 @@ export function renderDiagramSvg(grammar, singleRule) {
         // Pad to max width: draw connector line from end of terms to the full width position
         body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${loopY}" x2="${bodyEndX}" y2="${loopY}" />`;
         // Right stub: from padded end to right spine
-        body += `<line class="rail-line rail-line-alt" x1="${bodyEndX}" y1="${loopY}" x2="${joinOutX}" y2="${loopY}" />`;
+        body += `<line class="rail-line rail-line-alt" x1="${bodyEndX}" y1="${loopY}" x2="${rightUpX}" y2="${loopY}" />`;
         // Body lanes flow left-to-right; return flow is handled by shared bottom rail.
-        body += buildArrowOnSegment(laneStartX, loopY, joinOutX, loopY);
+        body += buildArrowOnSegment(laneStartX, loopY, rightUpX, loopY);
       });
 
       // Shared bottom return path: right-to-left back to the loop entry spine.
-      body += `<line class="rail-line rail-line-alt" x1="${joinOutX}" y1="${returnY}" x2="${joinX}" y2="${returnY}" />`;
-      body += buildArrowOnSegment(joinOutX, returnY, joinX, returnY);
+      body += `<line class="rail-line rail-line-alt" x1="${rightDownX}" y1="${returnY}" x2="${leftReturnX}" y2="${returnY}" />`;
+      body += buildArrowOnSegment(rightDownX, returnY, leftReturnX, returnY);
 
       totalHeight = returnY + ruleGap;
       maxWidth.value = Math.max(maxWidth.value, endX + 44);
