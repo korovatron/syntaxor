@@ -668,8 +668,6 @@ export function renderDiagramSvg(grammar, singleRule) {
       body += `<text class="rail-title" x="${ruleLabelX}" y="${mainLaneY}" text-anchor="end">&lt;${escapeXml(ruleName)}&gt;</text>`;
       body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${mainLaneY}" x2="${laneStartX}" y2="${mainLaneY}" />`;
       body += buildArrowOnSegment(joinX - incomingLead, mainLaneY, laneStartX, mainLaneY);
-      body += `<line class="rail-line" x1="${laneStartX + seqWidth + laneExitGap}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
-      body += buildArrowOnSegment(laneStartX + seqWidth + laneExitGap, mainLaneY, endX - 16, mainLaneY);
 
       let cursorX = laneStartX;
       termWidths.forEach(({ term, label, width }, termIndex) => {
@@ -687,7 +685,7 @@ export function renderDiagramSvg(grammar, singleRule) {
         }
       });
 
-      body += `<line class="rail-line" x1="${cursorX}" y1="${mainLaneY}" x2="${cursorX + laneExitGap}" y2="${mainLaneY}" />`;
+      body += `<line class="rail-line" x1="${cursorX}" y1="${mainLaneY}" x2="${endX - 16}" y2="${mainLaneY}" />`;
       body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${mainLaneY} V ${loopY}" />`;
       body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${loopY} V ${mainLaneY}" />`;
       if (loopSepWidths.length === 0) {
@@ -737,8 +735,19 @@ export function renderDiagramSvg(grammar, singleRule) {
       const endX = joinOutX + endCapGap;
       const branchBottom = branchTop + Math.max(0, alternatives.length - 1) * laneGap;
       const nonMainLaneYs = laneYs.filter((laneY) => laneY !== mainLaneY);
-      const topMergeLaneY = nonMainLaneYs.length ? Math.min(...nonMainLaneYs) : null;
-      const bottomMergeLaneY = nonMainLaneYs.length ? Math.max(...nonMainLaneYs) : null;
+
+      if (nonMainLaneYs.length > 0) {
+        const spineTopY = Math.min(...nonMainLaneYs);
+        const spineBottomY = Math.max(...nonMainLaneYs);
+        if (spineTopY < mainLaneY) {
+          body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${mainLaneY} V ${spineTopY}" />`;
+          body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${spineTopY} V ${mainLaneY}" />`;
+        }
+        if (spineBottomY > mainLaneY) {
+          body += `<path class="rail-line rail-line-alt" d="M ${joinX} ${mainLaneY} V ${spineBottomY}" />`;
+          body += `<path class="rail-line rail-line-alt" d="M ${joinOutX} ${spineBottomY} V ${mainLaneY}" />`;
+        }
+      }
 
       preparedAlternatives.forEach((prepared, index) => {
         const laneY = laneYs[index];
@@ -747,16 +756,8 @@ export function renderDiagramSvg(grammar, singleRule) {
         if (laneY === mainLaneY) {
           body += `<line class="rail-line" x1="${joinX - incomingLead}" y1="${laneY}" x2="${laneStartX}" y2="${laneY}" />`;
           body += buildArrowOnSegment(joinX - incomingLead, laneY, laneStartX, laneY);
-          body += `<line class="rail-line" x1="${cursorX + prepared.width + laneExitGap}" y1="${laneY}" x2="${laneMergeX}" y2="${laneY}" />`;
-          body += `<line class="rail-line" x1="${laneMergeX}" y1="${laneY}" x2="${endX - 16}" y2="${laneY}" />`;
-          body += buildArrowOnSegment(laneMergeX, laneY, endX - 16, laneY);
         } else {
-          body += `<path class="rail-line rail-line-alt" d="${buildOrthogonalPath(joinX, mainLaneY, laneStartX, laneY)}" />`;
-          body += `<line class="rail-line rail-line-alt" x1="${cursorX + prepared.width + laneExitGap}" y1="${laneY}" x2="${laneMergeX}" y2="${laneY}" />`;
-          body += `<path class="rail-line rail-line-alt" d="${buildOrthogonalPath(laneMergeX, laneY, joinOutX, mainLaneY)}" />`;
-          if (laneY === topMergeLaneY || laneY === bottomMergeLaneY) {
-            body += buildVerticalMergeArrowForOrthogonalPath(laneMergeX, laneY, joinOutX, mainLaneY);
-          }
+          body += `<line class="rail-line rail-line-alt" x1="${joinX}" y1="${laneY}" x2="${laneStartX}" y2="${laneY}" />`;
         }
 
         prepared.terms.forEach(({ term, label, width }, termIndex) => {
@@ -784,7 +785,11 @@ export function renderDiagramSvg(grammar, singleRule) {
           }
         });
 
-        body += `<line class="rail-line" x1="${cursorX}" y1="${laneY}" x2="${cursorX + laneExitGap}" y2="${laneY}" />`;
+        if (laneY === mainLaneY) {
+          body += `<line class="rail-line" x1="${cursorX}" y1="${laneY}" x2="${endX - 16}" y2="${laneY}" />`;
+        } else {
+          body += `<line class="rail-line rail-line-alt" x1="${cursorX}" y1="${laneY}" x2="${joinOutX}" y2="${laneY}" />`;
+        }
       });
 
       totalHeight = branchBottom + ruleGap;
@@ -812,14 +817,86 @@ export function renderDiagramSvg(grammar, singleRule) {
     '</defs>'
   ].join("");
 
-  const animatedBody = body.replace(
-    /<(line|path) class="rail-line([^"]*)"([^>]*)\/>/g,
-    (match, tag, classSuffix, attrs) => `${match}<${tag} class="rail-flow${classSuffix}"${attrs}/>`
-  );
+  const railElementPattern = /<(line|path) class="rail-line[^"]*"[^>]*\/>/g;
+  const railLayer = body.match(railElementPattern)?.join("") ?? "";
+  const nodeLayer = body.replace(railElementPattern, "");
+
+  function insetLineForFlow(element, inset = 4) {
+    const lineMatch = element.match(/x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"/);
+    if (!lineMatch) {
+      return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
+    }
+
+    let x1 = Number(lineMatch[1]);
+    let y1 = Number(lineMatch[2]);
+    let x2 = Number(lineMatch[3]);
+    let y2 = Number(lineMatch[4]);
+    const deltaX = x2 - x1;
+    const deltaY = y2 - y1;
+    const length = Math.hypot(deltaX, deltaY);
+
+    if (length <= inset * 2 + 0.5) {
+      return "";
+    }
+
+    const unitX = deltaX / length;
+    const unitY = deltaY / length;
+    x1 += unitX * inset;
+    y1 += unitY * inset;
+    x2 -= unitX * inset;
+    y2 -= unitY * inset;
+
+    return element
+      .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
+      .replace(/x1="[^"]+" y1="[^"]+" x2="[^"]+" y2="[^"]+"/, `x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"`);
+  }
+
+  function insetPathForFlow(element, inset = 4) {
+    const verticalMatch = element.match(/d="M ([^ ]+) ([^ ]+) V ([^ "]+)"/);
+    if (verticalMatch) {
+      const x = Number(verticalMatch[1]);
+      let startY = Number(verticalMatch[2]);
+      let endY = Number(verticalMatch[3]);
+      const direction = Math.sign(endY - startY) || 1;
+      if (Math.abs(endY - startY) <= inset * 2 + 0.5) {
+        return "";
+      }
+      startY += direction * inset;
+      endY -= direction * inset;
+      return element
+        .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
+        .replace(/d="[^"]+"/, `d="M ${x} ${startY.toFixed(2)} V ${endY.toFixed(2)}"`);
+    }
+
+    const orthogonalMatch = element.match(/d="M ([^ ]+) ([^ ]+) H ([^ ]+) V ([^ ]+) H ([^ "]+)"/);
+    if (orthogonalMatch) {
+      let startX = Number(orthogonalMatch[1]);
+      const startY = Number(orthogonalMatch[2]);
+      const bendX = Number(orthogonalMatch[3]);
+      const endY = Number(orthogonalMatch[4]);
+      let endX = Number(orthogonalMatch[5]);
+      const startDirection = Math.sign(bendX - startX) || 1;
+      const endDirection = Math.sign(endX - bendX) || 1;
+      if (Math.abs(bendX - startX) <= inset || Math.abs(endX - bendX) <= inset) {
+        return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
+      }
+      startX += startDirection * inset;
+      endX -= endDirection * inset;
+      return element
+        .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
+        .replace(/d="[^"]+"/, `d="M ${startX.toFixed(2)} ${startY} H ${bendX} V ${endY} H ${endX.toFixed(2)}"`);
+    }
+
+    return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
+  }
+
+  const animatedRailLayer = railLayer.replace(/<(line|path) class="rail-line[^"]*"[^>]*\/>/g, (element, tag) => {
+    return tag === "line" ? insetLineForFlow(element) : insetPathForFlow(element);
+  });
 
   return {
     width: Math.max(320, maxWidth.value),
     height: Math.max(220, totalHeight + 14),
-    markup: `${defs}<rect class="rail-backdrop" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" /><rect class="rail-grid" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" />${animatedBody}`
+    markup: `${defs}<rect class="rail-backdrop" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" /><rect class="rail-grid" x="10" y="10" width="${Math.max(300, maxWidth.value - 20)}" height="${Math.max(200, totalHeight - 6)}" rx="18" ry="18" />${railLayer}${animatedRailLayer}${nodeLayer}`
   };
 }
