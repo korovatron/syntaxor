@@ -605,22 +605,21 @@ textarea {
 }
 
 .rail-node-terminal {
-  fill: url(#terminalFill);
-  stroke: #7a652c;
+  fill: none;
+  stroke: #ff4df3;
   stroke-width: 2;
 }
 
 .rail-node-nonterminal {
-  fill: url(#nonterminalFill);
-  stroke: #3f90a5;
+  fill: none;
+  stroke: #00f6ff;
   stroke-width: 2;
 }
 
 .rail-node-epsilon {
-  fill: url(#epsilonFill);
-  stroke: rgba(114, 88, 181, 0.78);
+  fill: none;
+  stroke: #ff4df3;
   stroke-width: 2;
-  stroke-dasharray: 5 4;
 }
 
 .rail-label-terminal,
@@ -636,6 +635,18 @@ textarea {
 .rail-label-nonterminal,
 .rail-label-epsilon {
   fill: var(--paper-ink);
+}
+
+.rail-label-nonterminal {
+  fill: #00f6ff;
+}
+
+.rail-label-terminal {
+  fill: #ff4df3;
+}
+
+.rail-label-epsilon {
+  fill: #ff4df3;
 }
 
 .rail-operator {
