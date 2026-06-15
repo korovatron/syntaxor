@@ -821,72 +821,11 @@ export function renderDiagramSvg(grammar, singleRule) {
   const railLayer = body.match(railElementPattern)?.join("") ?? "";
   const nodeLayer = body.replace(railElementPattern, "");
 
-  function insetLineForFlow(element, inset = 4) {
-    const lineMatch = element.match(/x1="([^"]+)" y1="([^"]+)" x2="([^"]+)" y2="([^"]+)"/);
-    if (!lineMatch) {
-      return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
-    }
-
-    let x1 = Number(lineMatch[1]);
-    let y1 = Number(lineMatch[2]);
-    let x2 = Number(lineMatch[3]);
-    let y2 = Number(lineMatch[4]);
-    const deltaX = x2 - x1;
-    const deltaY = y2 - y1;
-    const length = Math.hypot(deltaX, deltaY);
-
-    if (length <= inset * 2 + 0.5) {
-      return "";
-    }
-
-    const unitX = deltaX / length;
-    const unitY = deltaY / length;
-    x1 += unitX * inset;
-    y1 += unitY * inset;
-    x2 -= unitX * inset;
-    y2 -= unitY * inset;
-
-    return element
-      .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
-      .replace(/x1="[^"]+" y1="[^"]+" x2="[^"]+" y2="[^"]+"/, `x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"`);
+  function insetLineForFlow(element) {
+    return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
   }
 
   function insetPathForFlow(element, inset = 4) {
-    const verticalMatch = element.match(/d="M ([^ ]+) ([^ ]+) V ([^ "]+)"/);
-    if (verticalMatch) {
-      const x = Number(verticalMatch[1]);
-      let startY = Number(verticalMatch[2]);
-      let endY = Number(verticalMatch[3]);
-      const direction = Math.sign(endY - startY) || 1;
-      if (Math.abs(endY - startY) <= inset * 2 + 0.5) {
-        return "";
-      }
-      startY += direction * inset;
-      endY -= direction * inset;
-      return element
-        .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
-        .replace(/d="[^"]+"/, `d="M ${x} ${startY.toFixed(2)} V ${endY.toFixed(2)}"`);
-    }
-
-    const orthogonalMatch = element.match(/d="M ([^ ]+) ([^ ]+) H ([^ ]+) V ([^ ]+) H ([^ "]+)"/);
-    if (orthogonalMatch) {
-      let startX = Number(orthogonalMatch[1]);
-      const startY = Number(orthogonalMatch[2]);
-      const bendX = Number(orthogonalMatch[3]);
-      const endY = Number(orthogonalMatch[4]);
-      let endX = Number(orthogonalMatch[5]);
-      const startDirection = Math.sign(bendX - startX) || 1;
-      const endDirection = Math.sign(endX - bendX) || 1;
-      if (Math.abs(bendX - startX) <= inset || Math.abs(endX - bendX) <= inset) {
-        return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
-      }
-      startX += startDirection * inset;
-      endX -= endDirection * inset;
-      return element
-        .replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"')
-        .replace(/d="[^"]+"/, `d="M ${startX.toFixed(2)} ${startY} H ${bendX} V ${endY} H ${endX.toFixed(2)}"`);
-    }
-
     return element.replace(/class="rail-line([^"]*)"/g, 'class="rail-flow$1"');
   }
 
