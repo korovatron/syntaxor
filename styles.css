@@ -99,7 +99,6 @@ button {
 }
 
 button:hover,
-select:hover,
 input:hover,
 textarea:hover {
   border-color: var(--focus);
@@ -110,14 +109,21 @@ button:hover {
 }
 
 button:focus-visible,
-select:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
-select,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a0a0c0' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding: 10px 28px 10px 12px;
+}
+
 input,
 textarea {
   padding: 10px 12px;
@@ -196,15 +202,6 @@ textarea {
   color: #ece6ff;
 }
 
-.status-chip {
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(12, 18, 25, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  text-align: center;
-}
-
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -213,10 +210,6 @@ textarea {
   min-height: 0;
   flex: 1;
   align-content: start;
-}
-
-.tester-panel {
-  grid-column: 1 / -1;
 }
 
 .editor-panel,
@@ -230,6 +223,14 @@ textarea {
   overflow: hidden;
 }
 
+.editor-panel.card,
+.diagram-panel.card {
+  background: #000000;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -239,9 +240,22 @@ textarea {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.editor-panel .panel-head,
+.diagram-panel .panel-head {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 10px;
+  background: linear-gradient(180deg, var(--panel-head-top), var(--panel-head-bottom));
+  min-height: 51px;
+}
+
 .panel-head h2 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.editor-panel .panel-head h2,
+.diagram-panel .panel-head h2 {
+  font-size: 1.05rem;
 }
 
 .panel-actions {
@@ -260,8 +274,7 @@ textarea {
 }
 
 .editor-panel,
-.diagram-panel,
-.tester-panel {
+.diagram-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -281,8 +294,6 @@ textarea {
 .editor-panel .field-label,
 .editor-panel .panel-note,
 .summary-grid,
-.tester-grid,
-.result-strip,
 .diagram-frame {
   margin-left: 16px;
   margin-right: 16px;
@@ -292,6 +303,7 @@ textarea {
   position: relative;
   flex: 1;
   min-height: 0;
+  margin-top: 16px;
   margin-left: 16px;
   margin-right: 16px;
   border-radius: 10px;
@@ -348,22 +360,22 @@ textarea {
 }
 
 .hl-nonterminal {
-  color: #39ff7a;
+  color: #4fb584;
   font-weight: 600;
 }
 
 .hl-terminal {
-  color: #ff4df3;
+  color: #d967be;
 }
 
 .hl-operator,
 .hl-alternative {
-  color: #ffb27d;
+  color: #d4985c;
   font-weight: 600;
 }
 
 .hl-epsilon {
-  color: #ccb6ff;
+  color: #b8a0e8;
 }
 
 .panel-note {
@@ -410,21 +422,46 @@ textarea {
   margin-top: 8px;
 }
 
+.summary-input {
+  width: 100%;
+  margin-top: 8px;
+}
+
+#testInput {
+  background: #000000;
+}
+
+#testInput:focus-visible {
+  outline: none;
+}
+
+#testInput.test-pass,
+#testInput.test-pass:hover,
+#testInput.test-pass:focus-visible {
+  border-color: #00ff00;
+  box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5);
+}
+
+#testInput.test-fail,
+#testInput.test-fail:hover,
+#testInput.test-fail:focus-visible {
+  border-color: #ff0000;
+  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.5);
+}
+
 .summary-card-wide {
   grid-column: 1 / -1;
 }
 
 .token-list,
-.message-list,
-.sample-buttons {
+.message-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
 
-.token-chip,
-.sample-chip {
+.token-chip {
   display: inline-flex;
   align-items: center;
   padding: 6px 10px;
@@ -457,7 +494,6 @@ textarea {
   display: grid;
   place-items: center;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
   background: #000000;
   overflow: hidden;
 }
@@ -493,64 +529,6 @@ textarea {
   padding: 24px;
   text-align: center;
   color: var(--muted);
-}
-
-.tester-grid {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(240px, 0.9fr);
-  gap: 12px;
-}
-
-.result-strip {
-  margin-top: 16px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  align-items: center;
-  padding: 14px;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at top right, rgba(255, 216, 107, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.12));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.result-badge {
-  min-width: 140px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  text-align: center;
-  font-weight: 700;
-}
-
-.result-badge.neutral {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.result-badge.pass {
-  background: rgba(57, 255, 122, 0.18);
-  color: #d9ffe8;
-}
-
-.result-badge.fail {
-  background: rgba(255, 109, 109, 0.18);
-  color: #ffe1e1;
-}
-
-.result-copy {
-  flex: 1;
-  color: var(--ink);
-}
-
-.sample-chip {
-  background: rgba(25, 181, 255, 0.12);
-  border-color: rgba(25, 181, 255, 0.35);
-}
-
-.sample-chip[data-expected="fail"] {
-  background: rgba(255, 109, 109, 0.12);
-  border-color: rgba(255, 109, 109, 0.35);
 }
 
 .rail-title {
@@ -689,8 +667,7 @@ textarea {
   }
 
   .top-bar,
-  .panel-head,
-  .result-strip {
+  .panel-head {
     flex-direction: column;
     align-items: stretch;
   }
@@ -699,12 +676,44 @@ textarea {
     align-items: flex-start;
   }
 
-  .summary-grid,
-  .tester-grid {
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .result-badge {
-    min-width: 0;
-  }
+}
+
+.workspace-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 2px;
+  color: var(--ink);
+  background: linear-gradient(
+    135deg,
+    var(--header-grad-start) 0%,
+    var(--header-grad-mid) 50%,
+    var(--header-grad-end) 100%
+  );
+  box-shadow: 0 6px 18px rgba(25, 14, 66, 0.5);
+  font-size: 0.92rem;
+  grid-column: 1 / -1;
+}
+
+.workspace-footer-copy {
+  min-width: 0;
+}
+
+.workspace-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.workspace-footer a:hover,
+.workspace-footer a:focus-visible {
+  color: #ffffff;
 }

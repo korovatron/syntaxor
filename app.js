@@ -7,23 +7,14 @@ const els = {
   exampleSelect: document.getElementById("exampleSelect"),
   startSymbolSelect: document.getElementById("startSymbolSelect"),
   diagramRuleSelect: document.getElementById("diagramRuleSelect"),
-  loadExampleBtn: document.getElementById("loadExampleBtn"),
   resetGrammarBtn: document.getElementById("resetGrammarBtn"),
-  refreshDiagramBtn: document.getElementById("refreshDiagramBtn"),
-  runTestBtn: document.getElementById("runTestBtn"),
   grammarInput: document.getElementById("grammarInput"),
   grammarHighlight: document.getElementById("grammarHighlight"),
   testInput: document.getElementById("testInput"),
-  workspaceStatus: document.getElementById("workspaceStatus"),
-  ruleCountValue: document.getElementById("ruleCountValue"),
-  terminalsValue: document.getElementById("terminalsValue"),
   warningsValue: document.getElementById("warningsValue"),
   diagramRuleTitle: document.getElementById("diagramRuleTitle"),
   diagram: document.getElementById("diagram"),
-  diagramEmptyState: document.getElementById("diagramEmptyState"),
-  sampleButtons: document.getElementById("sampleButtons"),
-  resultBadge: document.getElementById("resultBadge"),
-  resultCopy: document.getElementById("resultCopy")
+  diagramEmptyState: document.getElementById("diagramEmptyState")
 };
 
 const state = {
@@ -31,7 +22,6 @@ const state = {
   grammarText: EXAMPLES[DEFAULT_EXAMPLE_KEY].grammar,
   selectedStartSymbol: null,
   diagramRule: null,
-  samples: EXAMPLES[DEFAULT_EXAMPLE_KEY].samples,
   parsed: null,
   parseError: null
 };
@@ -57,7 +47,6 @@ function loadWorkspace() {
     const stored = JSON.parse(raw);
     if (stored.selectedExample && EXAMPLES[stored.selectedExample]) {
       state.selectedExample = stored.selectedExample;
-      state.samples = EXAMPLES[stored.selectedExample].samples;
     }
     if (typeof stored.grammarText === "string" && stored.grammarText.trim()) {
       state.grammarText = stored.grammarText;
@@ -74,10 +63,6 @@ function loadWorkspace() {
   } catch (_error) {
     localStorage.removeItem(STORAGE_KEY);
   }
-}
-
-function setStatus(message) {
-  els.workspaceStatus.textContent = message;
 }
 
 function escapeHtml(value) {
@@ -125,17 +110,6 @@ function renderGrammarHighlight() {
 function syncGrammarHighlightScroll() {
   els.grammarHighlight.scrollTop = els.grammarInput.scrollTop;
   els.grammarHighlight.scrollLeft = els.grammarInput.scrollLeft;
-}
-
-function renderTokenList(container, values, type) {
-  if (!values.length) {
-    container.textContent = "-";
-    return;
-  }
-
-  container.innerHTML = values
-    .map((value) => `<span class="token-chip ${type}">${escapeHtml(value)}</span>`)
-    .join("");
 }
 
 function renderWarnings(messages) {
@@ -213,15 +187,6 @@ function renderDiagram() {
   els.diagramEmptyState.hidden = true;
 }
 
-function renderSampleButtons() {
-  els.sampleButtons.innerHTML = state.samples
-    .map((sample, index) => {
-      const expected = sample.expected ? "pass" : "fail";
-      return `<button class="sample-chip" type="button" data-sample-index="${index}" data-expected="${expected}">${escapeHtml(sample.input)}</button>`;
-    })
-    .join("");
-}
-
 function applyExample(exampleKey) {
   const example = EXAMPLES[exampleKey];
   if (!example) {
@@ -231,10 +196,7 @@ function applyExample(exampleKey) {
   state.selectedExample = exampleKey;
   state.selectedStartSymbol = null;
   state.diagramRule = null;
-  state.samples = example.samples;
   els.grammarInput.value = example.grammar;
-  els.testInput.value = example.samples[0]?.input || "";
-  renderSampleButtons();
   parseAndRender();
 }
 
@@ -248,11 +210,8 @@ function parseAndRender() {
     state.parseError = null;
     setStartSymbolOptions(state.parsed);
     setDiagramRuleOptions(state.parsed);
-    els.ruleCountValue.textContent = `${state.parsed.ruleOrder.length}`;
-    renderTokenList(els.terminalsValue, state.parsed.terminals, "terminal");
     renderWarnings(state.parsed.warnings);
     renderDiagram();
-    setStatus(`Grammar parsed - ${state.parsed.ruleOrder.length} rules. Start rule: <${state.selectedStartSymbol}>.`);
     saveWorkspace();
   } catch (error) {
     state.parsed = null;
@@ -261,39 +220,25 @@ function parseAndRender() {
     state.diagramRule = null;
     setStartSymbolOptions(null);
     setDiagramRuleOptions(null);
-    els.ruleCountValue.textContent = "0";
-    els.terminalsValue.textContent = "-";
     renderWarnings([error.message]);
     renderDiagram();
-    setStatus("Grammar needs attention.");
     saveWorkspace();
   }
-}
 
-function renderResult(result) {
-  if (result.accepted) {
-    els.resultBadge.className = "result-badge pass";
-    els.resultBadge.textContent = "Accepted";
-    els.resultCopy.textContent = `The string matches <${result.grammar.startSymbol}> exactly.`;
-    return;
-  }
-
-  els.resultBadge.className = "result-badge fail";
-  els.resultBadge.textContent = "Rejected";
-
-  const furthest = result.furthest;
-  const reached = furthest >= 0 ? `${furthest}/${els.testInput.value.length}` : "0/0";
-  const recursionNote = result.blocked.length
-    ? ` Direct recursion blocked on ${result.blocked.map((symbol) => `<${symbol}>`).join(", ")}.`
-    : "";
-  els.resultCopy.textContent = `No full match. Furthest successful position: ${reached}.${recursionNote}`;
+  testCurrentString();
 }
 
 function testCurrentString() {
+  els.testInput.classList.remove("test-pass", "test-fail");
+
+  const inputValue = els.testInput.value;
+
+  if (!inputValue) {
+    return;
+  }
+
   if (!state.parsed) {
-    els.resultBadge.className = "result-badge fail";
-    els.resultBadge.textContent = "Cannot test";
-    els.resultCopy.textContent = state.parseError ? state.parseError.message : "Enter a valid grammar first.";
+    els.testInput.classList.add("test-fail");
     return;
   }
 
@@ -301,9 +246,8 @@ function testCurrentString() {
     ? { ...state.parsed, startSymbol: state.selectedStartSymbol }
     : state.parsed;
 
-  const result = testString(grammarForTest, els.testInput.value);
-  renderResult(result);
-  setStatus(result.accepted ? "String accepted." : "String rejected.");
+  const result = testString(grammarForTest, inputValue);
+  els.testInput.classList.add(result.accepted ? "test-pass" : "test-fail");
   saveWorkspace();
 }
 
@@ -329,19 +273,16 @@ function attachEvents() {
 
   els.grammarInput.addEventListener("scroll", syncGrammarHighlightScroll);
 
-  els.runTestBtn.addEventListener("click", testCurrentString);
-  els.testInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
+  let testTimer = null;
+  els.testInput.addEventListener("input", () => {
+    window.clearTimeout(testTimer);
+    testTimer = window.setTimeout(() => {
       testCurrentString();
-    }
+    }, 120);
   });
 
   els.exampleSelect.addEventListener("change", () => {
-    state.selectedExample = els.exampleSelect.value;
-    state.samples = EXAMPLES[state.selectedExample]?.samples || [];
-    renderSampleButtons();
-    saveWorkspace();
+    applyExample(els.exampleSelect.value);
   });
 
   els.startSymbolSelect.addEventListener("change", () => {
@@ -356,29 +297,9 @@ function attachEvents() {
     renderDiagram();
   });
 
-  els.loadExampleBtn.addEventListener("click", () => {
-    applyExample(els.exampleSelect.value);
-  });
-
   els.resetGrammarBtn.addEventListener("click", () => {
     applyExample(DEFAULT_EXAMPLE_KEY);
     els.exampleSelect.value = DEFAULT_EXAMPLE_KEY;
-  });
-
-  els.refreshDiagramBtn.addEventListener("click", parseAndRender);
-
-  els.sampleButtons.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-sample-index]");
-    if (!button) {
-      return;
-    }
-    const index = Number(button.dataset.sampleIndex);
-    const sample = state.samples[index];
-    if (!sample) {
-      return;
-    }
-    els.testInput.value = sample.input;
-    testCurrentString();
   });
 }
 
@@ -388,14 +309,9 @@ function init() {
   populateExamples();
   els.grammarInput.value = state.grammarText;
   els.exampleSelect.value = state.selectedExample;
-  renderSampleButtons();
-  if (!els.testInput.value) {
-    els.testInput.value = state.samples[0]?.input || "";
-  }
   renderGrammarHighlight();
   syncGrammarHighlightScroll();
   parseAndRender();
-  testCurrentString();
   attachEvents();
 }
 

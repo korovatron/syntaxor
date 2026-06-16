@@ -12,12 +12,7 @@ export const EXAMPLES = {
       '<number> ::= <digit> <number-tail>',
       '<number-tail> ::= <digit> <number-tail> | ""',
       '<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"'
-    ].join("\n"),
-    samples: [
-      { input: "2+3*4", expected: true },
-      { input: "(8-3)/5", expected: true },
-      { input: "7+", expected: false }
-    ]
+    ].join("\n")
   },
   identifier: {
     title: "Identifier",
@@ -26,12 +21,7 @@ export const EXAMPLES = {
       '<identifier-tail> ::= <letter> <identifier-tail> | <digit> <identifier-tail> | "_" <identifier-tail> | ""',
       '<letter> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"',
       '<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"'
-    ].join("\n"),
-    samples: [
-      { input: "student_7", expected: true },
-      { input: "alpha2", expected: true },
-      { input: "2cool", expected: false }
-    ]
+    ].join("\n")
   },
   sentence: {
     title: "Tiny sentence",
@@ -40,12 +30,7 @@ export const EXAMPLES = {
       '<subject> ::= "the cat" | "the robot" | "a student"',
       '<verb> ::= "writes" | "tests" | "builds"',
       '<object> ::= "rules" | "a parser" | "a diagram"'
-    ].join("\n"),
-    samples: [
-      { input: "the robot builds a parser", expected: true },
-      { input: "a student tests rules", expected: true },
-      { input: "robot builds a parser", expected: false }
-    ]
+    ].join("\n")
   }
 };
 
@@ -160,7 +145,7 @@ function parseSequence(source, lineNumber) {
       if (token === "ε" || token.toLowerCase() === "epsilon") {
         terms.push({ type: "epsilon", value: "" });
       } else {
-        terms.push({ type: "terminal", value: token });
+        terms.push({ type: "nonterminal", value: token });
       }
     }
     index = end;
@@ -267,16 +252,9 @@ export function parseGrammar(sourceText) {
     throw new Error("Enter at least one BNF rule.");
   }
 
-  for (const [ruleName, alternatives] of rules.entries()) {
-    const recursive = alternatives.some((alternative) => alternative[0]?.type === "nonterminal" && alternative[0].value === ruleName);
-    if (recursive) {
-      warnings.push(`Direct left recursion on <${ruleName}> is not supported by this tester.`);
-    }
-  }
-
   for (const symbol of referenced) {
     if (!rules.has(symbol)) {
-      warnings.push(`Referenced non-terminal <${symbol}> has no definition.`);
+      throw new Error(`Referenced non-terminal <${symbol}> has no definition.`);
     }
   }
 
@@ -294,7 +272,6 @@ export function testString(grammarInput, candidate) {
   const grammar = typeof grammarInput === "string" ? parseGrammar(grammarInput) : grammarInput;
   const input = `${candidate ?? ""}`;
   const memo = new Map();
-  const blocked = new Set();
   let furthest = 0;
 
   function matchSequence(sequence, startPosition, visiting) {
@@ -339,31 +316,31 @@ export function testString(grammarInput, candidate) {
       return memo.get(key);
     }
 
-    if (visiting.has(key)) {
-      blocked.add(symbol);
-      return new Set();
-    }
-
     const alternatives = grammar.rules.get(symbol);
     if (!alternatives) {
       return new Set();
     }
 
-    visiting.add(key);
     const results = new Set();
+    memo.set(key, results);
+    visiting.add(key);
+    let previousSize = -1;
 
-    for (const alternative of alternatives) {
-      const endPositions = alternative.length === 0
-        ? new Set([startPosition])
-        : matchSequence(alternative, startPosition, visiting);
+    while (results.size !== previousSize) {
+      previousSize = results.size;
 
-      for (const endPosition of endPositions) {
-        results.add(endPosition);
+      for (const alternative of alternatives) {
+        const endPositions = alternative.length === 0
+          ? new Set([startPosition])
+          : matchSequence(alternative, startPosition, visiting);
+
+        for (const endPosition of endPositions) {
+          results.add(endPosition);
+        }
       }
     }
 
     visiting.delete(key);
-    memo.set(key, results);
     return results;
   }
 
@@ -373,7 +350,7 @@ export function testString(grammarInput, candidate) {
   return {
     accepted,
     furthest,
-    blocked: [...blocked],
+    blocked: [],
     grammar,
     matches: [...matches].sort((left, right) => left - right)
   };

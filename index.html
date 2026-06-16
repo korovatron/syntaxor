@@ -21,7 +21,6 @@
           <p>Write rules, test strings, inspect the diagram.</p>
         </div>
       </div>
-      <div class="status-chip" id="workspaceStatus">Ready.</div>
     </header>
 
     <main class="layout">
@@ -31,12 +30,10 @@
           <div class="panel-actions compact action-stack">
             <label class="inline-label" for="exampleSelect">Example</label>
             <select id="exampleSelect"></select>
-            <button id="loadExampleBtn" type="button">Load</button>
             <button id="resetGrammarBtn" type="button">Reset</button>
           </div>
         </div>
 
-        <label class="field-label" for="grammarInput">BNF rules</label>
         <div class="grammar-editor">
           <pre id="grammarHighlight" class="grammar-highlight" aria-hidden="true"></pre>
           <textarea
@@ -48,10 +45,6 @@
             placeholder="&lt;digit&gt; ::= &quot;0&quot; | &quot;1&quot; | &quot;2&quot;"
           ></textarea>
         </div>
-        <p class="panel-note">
-          Use angle brackets for non-terminals and quotes for terminals. Empty string can be written as
-          <span class="code-pill">&quot;&quot;</span> or <span class="code-pill">ε</span>.
-        </p>
 
         <div class="summary-grid">
           <article class="summary-card">
@@ -61,12 +54,8 @@
             </select>
           </article>
           <article class="summary-card">
-            <span class="summary-label">Rules</span>
-            <strong id="ruleCountValue">0</strong>
-          </article>
-          <article class="summary-card summary-card-wide">
-            <span class="summary-label">Terminals</span>
-            <div id="terminalsValue" class="token-list"></div>
+            <label class="summary-label" for="testInput">Candidate string</label>
+            <input id="testInput" class="summary-input" type="text" spellcheck="false" autocomplete="off" />
           </article>
           <article class="summary-card summary-card-wide">
             <span class="summary-label">Warnings</span>
@@ -83,7 +72,6 @@
             <select id="diagramRuleSelect" disabled>
               <option value="">-</option>
             </select>
-            <button id="refreshDiagramBtn" type="button">Refresh</button>
           </div>
         </div>
         <div class="diagram-frame">
@@ -95,31 +83,12 @@
         </div>
       </section>
 
-      <section class="tester-panel card">
-        <div class="panel-head">
-          <h2>String Tester</h2>
-          <div class="panel-actions compact">
-            <button id="runTestBtn" type="button">Test string</button>
-          </div>
+      <footer class="workspace-footer" aria-label="Site footer">
+        <div class="workspace-footer-copy">
+          &copy; 2026 Neil Kendall More @
+          <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
         </div>
-
-        <div class="tester-grid">
-          <div>
-            <label class="field-label" for="testInput">Candidate string</label>
-            <input id="testInput" type="text" spellcheck="false" autocomplete="off" />
-            <p class="panel-note">The matcher checks the full string from the start symbol.</p>
-          </div>
-          <div>
-            <span class="field-label">Sample strings</span>
-            <div id="sampleButtons" class="sample-buttons"></div>
-          </div>
-        </div>
-
-        <div class="result-strip" id="resultStrip">
-          <div class="result-badge neutral" id="resultBadge">Awaiting test</div>
-          <div class="result-copy" id="resultCopy">Load or write a grammar, then test a string.</div>
-        </div>
-      </section>
+      </footer>
     </main>
   </div>
 
