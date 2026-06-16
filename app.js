@@ -303,6 +303,8 @@ function renderParseTreeSvg(tree) {
 
 function renderParseTreeModal() {
   const grammarForTree = getGrammarForCurrentStart();
+  const expression = `${els.testInput.value ?? ""}`;
+  const expressionDisplay = `"${expression}"`;
 
   if (!grammarForTree) {
     els.parseTreeTitle.textContent = "Parse Tree";
@@ -316,14 +318,14 @@ function renderParseTreeModal() {
   els.parseTreeTitle.textContent = `Parse Tree for <${result.rootSymbol}>`;
 
   if (!result.accepted || !result.tree) {
-    els.parseTreeStatus.textContent = "No complete parse tree for the current candidate string.";
+    els.parseTreeStatus.textContent = `Expression: ${expressionDisplay}`;
     els.parseTreeSvg.innerHTML = "";
     els.parseTreeSvg.setAttribute("viewBox", "0 0 960 260");
     return;
   }
 
   const treeSvg = renderParseTreeSvg(result.tree);
-  els.parseTreeStatus.textContent = "Showing the parse tree for the current candidate string.";
+  els.parseTreeStatus.textContent = `Expression: ${expressionDisplay}`;
   els.parseTreeSvg.setAttribute("viewBox", `0 0 ${treeSvg.width} ${treeSvg.height}`);
   els.parseTreeSvg.innerHTML = treeSvg.markup;
 }
