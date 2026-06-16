@@ -609,7 +609,7 @@ textarea {
 
 .rail-node-epsilon {
   fill: none;
-  stroke: #ff4df3;
+  stroke: #ffd86b;
   stroke-width: 2;
 }
 
@@ -659,6 +659,10 @@ textarea {
   .diagram-frame,
   .diagram-frame svg {
     min-height: 360px;
+  }
+
+  .grammar-editor {
+    min-height: 420px;
   }
 }
 

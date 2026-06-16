@@ -650,7 +650,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       const preparedBodies = bodyAlternatives.map((sequence) => {
         const terms = sequence.length === 0 ? [{ type: "epsilon", value: "\u03b5" }] : sequence;
         const widths = terms.map((term) => {
-          const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "\u03b5" : `${term.value}`;
+          const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "\u03b5" : `"${term.value}"`;
           return { label, width: measureTermWidth(label), term };
         });
         const seqW = widths.reduce((total, item, index) => total + item.width + (index < widths.length - 1 ? 24 : 0), 0);
@@ -772,12 +772,12 @@ export function renderDiagramSvg(grammar, singleRule) {
       const { base: loopBase, separator: loopSeparator } = loopPattern;
       const baseTerms = loopBase.length === 0 ? [{ type: "epsilon", value: "ε" }] : loopBase;
       const termWidths = baseTerms.map((term) => {
-        const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `${term.value}`;
+        const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `"${term.value}"`;
         return { label, width: measureTermWidth(label), term };
       });
       const seqWidth = termWidths.reduce((total, item, index) => total + item.width + (index < termWidths.length - 1 ? 24 : 0), 0);
       const loopSepWidths = loopSeparator.map((term) => {
-        const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `${term.value}`;
+        const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `"${term.value}"`;
         return { label, width: measureTermWidth(label), term };
       });
       const sepTotalWidth = loopSepWidths.reduce((total, item, index) => total + item.width + (index > 0 ? 24 : 0), 0);
@@ -844,7 +844,7 @@ export function renderDiagramSvg(grammar, singleRule) {
       const preparedAlternatives = alternatives.map((sequence) => {
         const terms = sequence.length === 0 ? [{ type: "epsilon", value: "ε" }] : sequence;
         const widths = terms.map((term) => {
-          const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `${term.value}`;
+          const label = term.type === "nonterminal" ? `<${term.value}>` : term.type === "epsilon" ? "ε" : `"${term.value}"`;
           return { label, width: measureTermWidth(label), term };
         });
         const sequenceWidth = widths.reduce((total, item, index) => total + item.width + (index < widths.length - 1 ? 24 : 0), 0);

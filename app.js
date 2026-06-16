@@ -417,6 +417,22 @@ function attachEvents() {
   let parseTimer = null;
 
   els.grammarInput.addEventListener("input", () => {
+    // Auto-replace "" with ε
+    const cursorPos = els.grammarInput.selectionStart;
+    const text = els.grammarInput.value;
+    const hasEmptyString = text.includes("\"\"");
+    
+    if (hasEmptyString) {
+      const newText = text.replace(/""/g, "ε");
+      const beforeCursor = text.substring(0, cursorPos);
+      const emptyStringsBeforeCursor = (beforeCursor.match(/""/g) || []).length;
+      const newCursorPos = cursorPos + emptyStringsBeforeCursor;
+      
+      els.grammarInput.value = newText;
+      els.grammarInput.selectionStart = newCursorPos;
+      els.grammarInput.selectionEnd = newCursorPos;
+    }
+    
     renderGrammarHighlight();
     syncGrammarHighlightScroll();
     window.clearTimeout(parseTimer);
