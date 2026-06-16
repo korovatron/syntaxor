@@ -366,7 +366,7 @@ export function buildParseTree(grammarInput, candidate, startSymbol) {
   function createTerminalNode(value, startPosition, endPosition) {
     return {
       type: "terminal",
-      label: value,
+        label: `"${value}"`,
       value,
       start: startPosition,
       end: endPosition,
