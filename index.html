@@ -54,7 +54,10 @@
             </select>
           </article>
           <article class="summary-card">
-            <label class="summary-label" for="testInput">Candidate string</label>
+            <div class="summary-card-head">
+              <label class="summary-label" for="testInput">Candidate string</label>
+              <button id="parseTreeBtn" class="summary-action-btn" type="button">Parse tree</button>
+            </div>
             <input id="testInput" class="summary-input" type="text" spellcheck="false" autocomplete="off" />
           </article>
           <article class="summary-card summary-card-wide">
@@ -90,6 +93,21 @@
         </div>
       </footer>
     </main>
+
+    <div id="parseTreeModal" class="modal-overlay" hidden>
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="parseTreeTitle">
+        <div class="modal-head">
+          <h2 id="parseTreeTitle">Parse Tree</h2>
+          <button id="parseTreeCloseBtn" type="button">Close</button>
+        </div>
+        <div class="modal-body">
+          <p id="parseTreeStatus" class="modal-status"></p>
+          <div class="parse-tree-frame">
+            <svg id="parseTreeSvg" viewBox="0 0 960 260" preserveAspectRatio="xMidYMid meet" aria-label="Parse tree"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="app.js"></script>

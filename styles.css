@@ -411,6 +411,19 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.summary-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.summary-action-btn {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
 .summary-card strong {
   display: block;
   margin-top: 8px;
@@ -612,19 +625,7 @@ textarea {
 .rail-label-terminal,
 .rail-label-nonterminal,
 .rail-label-epsilon {
-  fill: var(--paper-ink);
-}
-
-.rail-label-nonterminal {
-  fill: #39ff7a;
-}
-
-.rail-label-terminal {
-  fill: #ff4df3;
-}
-
-.rail-label-epsilon {
-  fill: #ff4df3;
+  fill: #ffffff;
 }
 
 .rail-operator {
@@ -716,4 +717,112 @@ textarea {
 .workspace-footer a:hover,
 .workspace-footer a:focus-visible {
   color: #ffffff;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.modal-dialog {
+  width: min(1400px, 96vw);
+  max-height: 96vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000000;
+  box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  min-height: 51px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-head-top), var(--panel-head-bottom));
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+  padding: 16px;
+  background: #000000;
+}
+
+.modal-status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.parse-tree-frame {
+  flex: 1;
+  min-height: 0;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: #000000;
+  overflow: auto;
+}
+
+.parse-tree-frame svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  background: #000000;
+}
+
+.parse-tree-edge {
+  fill: none;
+  stroke: rgba(201, 195, 238, 0.52);
+  stroke-width: 2.5;
+}
+
+.parse-tree-node rect {
+  stroke-width: 1.5;
+}
+
+.parse-tree-node text {
+  fill: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.parse-tree-nonterminal rect {
+  fill: #000000;
+  stroke: #39ff7a;
+}
+
+.parse-tree-terminal rect {
+  fill: #000000;
+  stroke: #ff4df3;
+}
+
+.parse-tree-epsilon rect {
+  fill: #000000;
+  stroke: #b8a0e8;
+}
+
+.parse-tree-root rect {
+  stroke: #00ff00;
+  stroke-width: 2;
 }

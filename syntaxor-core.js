@@ -356,6 +356,146 @@ export function testString(grammarInput, candidate) {
   };
 }
 
+export function buildParseTree(grammarInput, candidate, startSymbol) {
+  const grammar = typeof grammarInput === "string" ? parseGrammar(grammarInput) : grammarInput;
+  const input = `${candidate ?? ""}`;
+  const rootSymbol = startSymbol && grammar.rules.has(startSymbol) ? startSymbol : grammar.startSymbol;
+  const memo = new Map();
+  let furthest = 0;
+
+  function createTerminalNode(value, startPosition, endPosition) {
+    return {
+      type: "terminal",
+      label: value,
+      value,
+      start: startPosition,
+      end: endPosition,
+      children: []
+    };
+  }
+
+  function createEpsilonNode(position) {
+    return {
+      type: "epsilon",
+      label: "ε",
+      value: "",
+      start: position,
+      end: position,
+      children: []
+    };
+  }
+
+  function createNonTerminalNode(symbol, startPosition, endPosition, children) {
+    return {
+      type: "nonterminal",
+      label: `<${symbol}>`,
+      symbol,
+      start: startPosition,
+      end: endPosition,
+      children
+    };
+  }
+
+  function matchSequence(sequence, startPosition, visiting) {
+    let results = [{ endPosition: startPosition, children: [] }];
+
+    for (const term of sequence) {
+      const nextResults = [];
+
+      for (const result of results) {
+        const position = result.endPosition;
+
+        if (term.type === "terminal") {
+          if (input.startsWith(term.value, position)) {
+            const endPosition = position + term.value.length;
+            nextResults.push({
+              endPosition,
+              children: [...result.children, createTerminalNode(term.value, position, endPosition)]
+            });
+            furthest = Math.max(furthest, endPosition);
+          } else {
+            furthest = Math.max(furthest, position);
+          }
+          continue;
+        }
+
+        if (term.type === "nonterminal") {
+          const subMatches = matchNonTerminal(term.value, position, visiting);
+          for (const subMatch of subMatches) {
+            nextResults.push({
+              endPosition: subMatch.endPosition,
+              children: [...result.children, subMatch.node]
+            });
+            furthest = Math.max(furthest, subMatch.endPosition);
+          }
+        }
+      }
+
+      results = nextResults;
+      if (results.length === 0) {
+        break;
+      }
+    }
+
+    return results;
+  }
+
+  function matchNonTerminal(symbol, startPosition, visiting) {
+    const key = `${symbol}@${startPosition}`;
+
+    if (memo.has(key)) {
+      return memo.get(key);
+    }
+
+    const alternatives = grammar.rules.get(symbol);
+    if (!alternatives) {
+      return [];
+    }
+
+    const results = [];
+    const resultsByEnd = new Map();
+    memo.set(key, results);
+    visiting.add(key);
+
+    let previousSize = -1;
+    while (results.length !== previousSize) {
+      previousSize = results.length;
+
+      for (const alternative of alternatives) {
+        const endMatches = alternative.length === 0
+          ? [{ endPosition: startPosition, children: [createEpsilonNode(startPosition)] }]
+          : matchSequence(alternative, startPosition, visiting);
+
+        for (const endMatch of endMatches) {
+          if (resultsByEnd.has(endMatch.endPosition)) {
+            continue;
+          }
+
+          const node = createNonTerminalNode(symbol, startPosition, endMatch.endPosition, endMatch.children);
+          const result = { endPosition: endMatch.endPosition, node };
+          resultsByEnd.set(endMatch.endPosition, result);
+          results.push(result);
+        }
+      }
+    }
+
+    visiting.delete(key);
+    return results;
+  }
+
+  const matches = matchNonTerminal(rootSymbol, 0, new Set());
+  const acceptedMatch = matches.find((match) => match.endPosition === input.length) || null;
+
+  return {
+    accepted: Boolean(acceptedMatch),
+    furthest,
+    grammar,
+    matches: matches.map((match) => match.endPosition).sort((left, right) => left - right),
+    tree: acceptedMatch ? acceptedMatch.node : null,
+    rootSymbol
+  };
+}
+
 function escapeXml(value) {
   return `${value}`
     .replace(/&/g, "&amp;")
