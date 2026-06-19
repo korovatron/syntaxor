@@ -1,10 +1,17 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "0.1.2";
+const APP_VERSION = "0.1.3";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
 const DEFAULT_FIRST_RUN_TEST_INPUT = "1+2*3";
+const IS_IOS_BROWSER = (() => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+})();
 
 const els = {
   btnHamburger: document.getElementById("btnHamburger"),
@@ -714,7 +721,35 @@ function attachEvents() {
   });
 }
 
+function initZoomLock() {
+  if (!IS_IOS_BROWSER) {
+    return;
+  }
+
+  ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+    document.addEventListener(eventName, (event) => {
+      event.preventDefault();
+    }, { passive: false });
+  });
+
+  document.addEventListener("touchmove", (event) => {
+    if (typeof event.scale === "number" && event.scale !== 1) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+
+  let lastTouchEndAt = 0;
+  document.addEventListener("touchend", (event) => {
+    const now = Date.now();
+    if (now - lastTouchEndAt <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEndAt = now;
+  }, { passive: false });
+}
+
 function init() {
+  initZoomLock();
   const showAboutOnStartup = getShowAboutOnStartupPreference();
   els.aboutShowOnStartup.checked = showAboutOnStartup;
   if (els.aboutVersion) {
