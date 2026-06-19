@@ -9,7 +9,12 @@
     content="Syntaxor lets students write BNF rules, test strings against those rules, and inspect the generated syntax diagram."
   />
   <meta name="theme-color" content="#000000" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Syntaxor" />
   <link rel="icon" type="image/svg+xml" href="images/syntaxor-logo.svg" />
+  <link rel="apple-touch-icon" href="images/syntaxor-logo.svg" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body data-theme="dark">
@@ -149,6 +154,7 @@
           <img class="about-modal-image" src="images/syntaxor-logo.svg" alt="Syntaxor logo" />
           <p>Syntaxor is a BNF grammar lab designed for fast classroom demonstrations and student experimentation.</p>
           <p>Write grammar rules, test candidate strings, and inspect generated syntax diagrams in one workspace.</p>
+          <p>Version: <strong id="aboutVersion"></strong></p>
           <label class="about-startup-toggle" for="aboutShowOnStartup">
             <input id="aboutShowOnStartup" type="checkbox" />
             <span>Show this on start-up</span>

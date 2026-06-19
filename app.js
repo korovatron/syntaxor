@@ -1,5 +1,6 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
+const APP_VERSION = "0.1.1";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -27,6 +28,7 @@ const els = {
   aboutModal: document.getElementById("aboutModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
   btnAboutCloseX: document.getElementById("btnAboutCloseX"),
+  aboutVersion: document.getElementById("aboutVersion"),
   aboutShowOnStartup: document.getElementById("aboutShowOnStartup"),
   parseTreeTitle: document.getElementById("parseTreeTitle"),
   parseTreeStatus: document.getElementById("parseTreeStatus"),
@@ -645,6 +647,9 @@ function attachEvents() {
 function init() {
   const showAboutOnStartup = getShowAboutOnStartupPreference();
   els.aboutShowOnStartup.checked = showAboutOnStartup;
+  if (els.aboutVersion) {
+    els.aboutVersion.textContent = APP_VERSION;
+  }
 
   populateExamples();
   const restoredFromStorage = loadWorkspace();
@@ -664,6 +669,14 @@ function init() {
 
   if (showAboutOnStartup) {
     openAboutModal({ focusClose: false });
+  }
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {
+        // Ignore registration failures so the app still runs normally.
+      });
+    });
   }
 }
 
