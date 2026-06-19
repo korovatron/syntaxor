@@ -1,4 +1,4 @@
-const CACHE_VERSION = "0.1.3";
+const CACHE_VERSION = "0.1.4";
 const CACHE_NAME = `syntaxor-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",

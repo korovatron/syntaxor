@@ -1,6 +1,6 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "0.1.3";
+const APP_VERSION = "0.1.4";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -319,7 +319,7 @@ function collectParseTreeLayout(node, measure, left, depth, nodes, edges) {
   });
 }
 
-function renderParseTreeSvg(tree) {
+function renderParseTreeSvg(tree, targetAspectRatio = null) {
   const measure = measureParseTree(tree);
   const nodes = [];
   const edges = [];
@@ -327,10 +327,14 @@ function renderParseTreeSvg(tree) {
 
   const maxDepth = nodes.reduce((max, node) => Math.max(max, node.depth), 0);
   const width = Math.max(Math.ceil(measure.width + PARSE_TREE_LAYOUT.padding * 2), PARSE_TREE_LAYOUT.minWidth);
-  const height = Math.max(
+  const baseHeight = Math.max(
     Math.ceil(PARSE_TREE_LAYOUT.padding * 2 + maxDepth * PARSE_TREE_LAYOUT.verticalGap + PARSE_TREE_LAYOUT.nodeHeight),
     PARSE_TREE_LAYOUT.minHeight
   );
+  const desiredHeightForFrame = targetAspectRatio && Number.isFinite(targetAspectRatio) && targetAspectRatio > 0
+    ? Math.ceil(width / targetAspectRatio)
+    : 0;
+  const height = Math.max(baseHeight, desiredHeightForFrame);
 
   const edgeMarkup = edges.map((edge) => {
     return `<line class="parse-tree-edge" x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" />`;
@@ -358,6 +362,10 @@ function renderParseTreeModal() {
   const grammarForTree = getGrammarForCurrentStart();
   const expression = `${els.testInput.value ?? ""}`;
   const expressionDisplay = `"${expression}"`;
+  const parseTreeFrame = els.parseTreeSvg.parentElement;
+  const frameAspectRatio = parseTreeFrame && parseTreeFrame.clientWidth > 0 && parseTreeFrame.clientHeight > 0
+    ? parseTreeFrame.clientWidth / parseTreeFrame.clientHeight
+    : null;
 
   if (!grammarForTree) {
     els.parseTreeTitle.textContent = "Parse Tree";
@@ -377,7 +385,7 @@ function renderParseTreeModal() {
     return;
   }
 
-  const treeSvg = renderParseTreeSvg(result.tree);
+  const treeSvg = renderParseTreeSvg(result.tree, frameAspectRatio);
   els.parseTreeStatus.textContent = `Expression: ${expressionDisplay}`;
   els.parseTreeSvg.setAttribute("viewBox", `0 0 ${treeSvg.width} ${treeSvg.height}`);
   els.parseTreeSvg.innerHTML = treeSvg.markup;
@@ -387,10 +395,9 @@ function openParseTreeModal() {
   if (state.parseTreeModalOverlay) {
     return;
   }
-  renderParseTreeModal();
   state.modalOpenedAt = performance.now();
   const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);z-index:9999;display:grid;place-items:center;padding:12px;box-sizing:border-box;";
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);z-index:9999;display:grid;place-items:center;padding:30px;box-sizing:border-box;";
   const content = els.parseTreeModal.firstElementChild;
   if (content) {
     overlay.appendChild(content);
@@ -407,6 +414,7 @@ function openParseTreeModal() {
   state.parseTreeModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   window.requestAnimationFrame(() => {
+    renderParseTreeModal();
     els.parseTreeCloseBtn.focus();
   });
 }

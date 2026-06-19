@@ -133,7 +133,15 @@
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="parseTreeTitle">
         <div class="modal-head">
           <h2 id="parseTreeTitle">Parse Tree</h2>
-          <button id="parseTreeCloseBtn" type="button">Close</button>
+          <button
+            id="parseTreeCloseBtn"
+            class="rule-del-btn"
+            type="button"
+            aria-label="Close parse tree"
+            title="Close parse tree"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+          </button>
         </div>
         <div class="modal-body">
           <p id="parseTreeStatus" class="modal-status"></p>
@@ -146,7 +154,7 @@
 
     <div id="aboutModal" class="modal-backdrop" hidden>
       <div class="modal about-modal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
-        <h3 id="aboutModalTitle">About Syntaxor</h3>
+        <h3 id="aboutModalTitle">About</h3>
         <button id="btnAboutCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close about" title="Close about">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
         </button>
@@ -155,7 +163,7 @@
           <p>Syntaxor is a BNF grammar lab designed for fast classroom demonstrations and student experimentation.</p>
           <p>Write grammar rules, test candidate strings, and inspect generated syntax diagrams in one workspace.</p>
           <p>Version: <strong id="aboutVersion"></strong></p>
-          <label class="about-startup-toggle" for="aboutShowOnStartup">
+          <label class="modal-check about-show-on-start" for="aboutShowOnStartup">
             <input id="aboutShowOnStartup" type="checkbox" />
             <span>Show this on start-up</span>
           </label>
