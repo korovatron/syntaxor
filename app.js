@@ -5,6 +5,13 @@ const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
 const DEFAULT_FIRST_RUN_TEST_INPUT = "1+2*3";
+const IS_IOS_BROWSER = (() => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+})();
 
 window.__SYNTAXOR_VERSION__ = APP_VERSION;
 
@@ -30,6 +37,7 @@ const els = {
   aboutModal: document.getElementById("aboutModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
   btnAboutCloseX: document.getElementById("btnAboutCloseX"),
+  aboutVersion: document.getElementById("aboutVersion"),
   aboutShowOnStartup: document.getElementById("aboutShowOnStartup"),
   parseTreeTitle: document.getElementById("parseTreeTitle"),
   parseTreeStatus: document.getElementById("parseTreeStatus"),
@@ -46,7 +54,11 @@ const state = {
   selectedStartSymbol: null,
   diagramRule: null,
   parsed: null,
-  parseError: null
+  parseError: null,
+  modalOpenedAt: 0,
+  parseTreeModalOverlay: null,
+  aboutModalOverlay: null,
+  helpModalOverlay: null
 };
 
 function setParseTreeEnabled(enabled) {
@@ -309,7 +321,7 @@ function collectParseTreeLayout(node, measure, left, depth, nodes, edges) {
   });
 }
 
-function renderParseTreeSvg(tree) {
+function renderParseTreeSvg(tree, targetAspectRatio = null) {
   const measure = measureParseTree(tree);
   const nodes = [];
   const edges = [];
@@ -317,10 +329,14 @@ function renderParseTreeSvg(tree) {
 
   const maxDepth = nodes.reduce((max, node) => Math.max(max, node.depth), 0);
   const width = Math.max(Math.ceil(measure.width + PARSE_TREE_LAYOUT.padding * 2), PARSE_TREE_LAYOUT.minWidth);
-  const height = Math.max(
+  const baseHeight = Math.max(
     Math.ceil(PARSE_TREE_LAYOUT.padding * 2 + maxDepth * PARSE_TREE_LAYOUT.verticalGap + PARSE_TREE_LAYOUT.nodeHeight),
     PARSE_TREE_LAYOUT.minHeight
   );
+  const desiredHeightForFrame = targetAspectRatio && Number.isFinite(targetAspectRatio) && targetAspectRatio > 0
+    ? Math.ceil(width / targetAspectRatio)
+    : 0;
+  const height = Math.max(baseHeight, desiredHeightForFrame);
 
   const edgeMarkup = edges.map((edge) => {
     return `<line class="parse-tree-edge" x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" />`;
@@ -348,6 +364,10 @@ function renderParseTreeModal() {
   const grammarForTree = getGrammarForCurrentStart();
   const expression = `${els.testInput.value ?? ""}`;
   const expressionDisplay = `"${expression}"`;
+  const parseTreeFrame = els.parseTreeSvg.parentElement;
+  const frameAspectRatio = parseTreeFrame && parseTreeFrame.clientWidth > 0 && parseTreeFrame.clientHeight > 0
+    ? parseTreeFrame.clientWidth / parseTreeFrame.clientHeight
+    : null;
 
   if (!grammarForTree) {
     els.parseTreeTitle.textContent = "Parse Tree";
@@ -367,30 +387,76 @@ function renderParseTreeModal() {
     return;
   }
 
-  const treeSvg = renderParseTreeSvg(result.tree);
+  const treeSvg = renderParseTreeSvg(result.tree, frameAspectRatio);
   els.parseTreeStatus.textContent = `Expression: ${expressionDisplay}`;
   els.parseTreeSvg.setAttribute("viewBox", `0 0 ${treeSvg.width} ${treeSvg.height}`);
   els.parseTreeSvg.innerHTML = treeSvg.markup;
 }
 
 function openParseTreeModal() {
-  renderParseTreeModal();
-  els.parseTreeModal.hidden = false;
+  if (state.parseTreeModalOverlay) {
+    return;
+  }
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);z-index:9999;display:grid;place-items:center;padding:30px;box-sizing:border-box;";
+  const content = els.parseTreeModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeParseTreeModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.parseTreeModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   window.requestAnimationFrame(() => {
+    renderParseTreeModal();
     els.parseTreeCloseBtn.focus();
   });
 }
 
 function closeParseTreeModal() {
-  els.parseTreeModal.hidden = true;
+  if (!state.parseTreeModalOverlay) {
+    return;
+  }
+  const content = state.parseTreeModalOverlay.firstElementChild;
+  if (content) {
+    els.parseTreeModal.appendChild(content);
+  }
+  state.parseTreeModalOverlay.remove();
+  state.parseTreeModalOverlay = null;
   document.body.style.overflow = "";
   els.parseTreeBtn.focus();
 }
 
 function openAboutModal(options = {}) {
+  if (state.aboutModalOverlay) {
+    return;
+  }
   const { focusClose = true } = options;
-  els.aboutModal.hidden = false;
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.aboutModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeAboutModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.aboutModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   toggleMenu(false);
   if (focusClose) {
@@ -399,11 +465,39 @@ function openAboutModal(options = {}) {
     });
   }
 }
+      if (!state.aboutModalOverlay) {
+        return;
+      }
+      const content = state.aboutModalOverlay.firstElementChild;
+      if (content) {
+        els.aboutModal.appendChild(content);
+      }
+      state.aboutModalOverlay.remove();
+      state.aboutModalOverlay = null;
 
 function closeAboutModal() {
   els.aboutModal.hidden = true;
   document.body.style.overflow = "";
-}
+      if (state.helpModalOverlay) {
+        return;
+      }
+      state.modalOpenedAt = performance.now();
+      const overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+      const content = els.helpModal.firstElementChild;
+      if (content) {
+        overlay.appendChild(content);
+      }
+      overlay.addEventListener("click", (event) => {
+        if (performance.now() - state.modalOpenedAt < 350) {
+          return;
+        }
+        if (event.target === overlay) {
+          closeHelpModal();
+        }
+      });
+      document.body.appendChild(overlay);
+      state.helpModalOverlay = overlay;
 
 function openHelpModal() {
   els.helpModal.hidden = false;
@@ -415,7 +509,15 @@ function openHelpModal() {
 }
 
 function closeHelpModal() {
-  els.helpModal.hidden = true;
+  if (!state.helpModalOverlay) {
+    return;
+  }
+  const content = state.helpModalOverlay.firstElementChild;
+  if (content) {
+    els.helpModal.appendChild(content);
+  }
+  state.helpModalOverlay.remove();
+  state.helpModalOverlay = null;
   document.body.style.overflow = "";
 }
 
@@ -592,21 +694,6 @@ function attachEvents() {
 
   els.parseTreeBtn.addEventListener("click", openParseTreeModal);
   els.parseTreeCloseBtn.addEventListener("click", closeParseTreeModal);
-  els.parseTreeModal.addEventListener("click", (event) => {
-    if (event.target === els.parseTreeModal) {
-      closeParseTreeModal();
-    }
-  });
-  els.helpModal.addEventListener("click", (event) => {
-    if (event.target === els.helpModal) {
-      closeHelpModal();
-    }
-  });
-  els.aboutModal.addEventListener("click", (event) => {
-    if (event.target === els.aboutModal) {
-      closeAboutModal();
-    }
-  });
   els.btnHelpCloseX.addEventListener("click", closeHelpModal);
   els.btnAboutCloseX.addEventListener("click", closeAboutModal);
   els.aboutShowOnStartup.addEventListener("change", () => {
@@ -619,17 +706,17 @@ function attachEvents() {
       return;
     }
 
-    if (event.key === "Escape" && !els.helpModal.hidden) {
+    if (event.key === "Escape" && state.helpModalOverlay) {
       closeHelpModal();
       return;
     }
 
-    if (event.key === "Escape" && !els.aboutModal.hidden) {
+    if (event.key === "Escape" && state.aboutModalOverlay) {
       closeAboutModal();
       return;
     }
 
-    if (event.key === "Escape" && !els.parseTreeModal.hidden) {
+    if (event.key === "Escape" && state.parseTreeModalOverlay) {
       closeParseTreeModal();
     }
   });
@@ -645,9 +732,40 @@ function attachEvents() {
   });
 }
 
+function initZoomLock() {
+  if (!IS_IOS_BROWSER) {
+    return;
+  }
+
+  ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+    document.addEventListener(eventName, (event) => {
+      event.preventDefault();
+    }, { passive: false });
+  });
+
+  document.addEventListener("touchmove", (event) => {
+    if (typeof event.scale === "number" && event.scale !== 1) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+
+  let lastTouchEndAt = 0;
+  document.addEventListener("touchend", (event) => {
+    const now = Date.now();
+    if (now - lastTouchEndAt <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEndAt = now;
+  }, { passive: false });
+}
+
 function init() {
+  initZoomLock();
   const showAboutOnStartup = getShowAboutOnStartupPreference();
   els.aboutShowOnStartup.checked = showAboutOnStartup;
+  if (els.aboutVersion) {
+    els.aboutVersion.textContent = APP_VERSION;
+  }
 
   populateExamples();
   const restoredFromStorage = loadWorkspace();
