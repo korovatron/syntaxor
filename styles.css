@@ -127,6 +127,7 @@ select {
 input,
 textarea {
   padding: 10px 12px;
+  font-size: 16px;
 }
 
 textarea {
@@ -550,7 +551,7 @@ textarea {
   border: 0;
   border-radius: 0;
   font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
@@ -941,14 +942,33 @@ textarea {
     padding: 8px;
   }
 
-  .top-bar,
-  .panel-head {
-    flex-direction: column;
-    align-items: stretch;
+  .top-bar {
+    align-items: center;
+    gap: 10px;
   }
 
   .brand {
-    align-items: flex-start;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-text {
+    min-width: 0;
+  }
+
+  .panel-head {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .panel-head h2 {
+    min-width: 0;
+  }
+
+  .panel-actions.compact {
+    flex-wrap: nowrap;
+    gap: 6px;
   }
 
   .summary-grid {
