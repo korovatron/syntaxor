@@ -1,10 +1,19 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
 const STORAGE_KEY = "syntaxor.workspace.v1";
+const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
+const DEFAULT_FIRST_RUN_TEST_INPUT = "1+2*3";
 
 const els = {
-  exampleSelect: document.getElementById("exampleSelect"),
+  btnHamburger: document.getElementById("btnHamburger"),
+  btnMenuClose: document.getElementById("btnMenuClose"),
+  appMenu: document.getElementById("appMenu"),
+  menuExamplesToggle: document.getElementById("menuExamplesToggle"),
+  menuExamplesList: document.getElementById("menuExamplesList"),
+  menuHelp: document.getElementById("menuHelp"),
+  menuAbout: document.getElementById("menuAbout"),
+  btnFooterHelp: document.getElementById("btnFooterHelp"),
   startSymbolSelect: document.getElementById("startSymbolSelect"),
   diagramRuleSelect: document.getElementById("diagramRuleSelect"),
   resetGrammarBtn: document.getElementById("resetGrammarBtn"),
@@ -14,6 +23,11 @@ const els = {
   parseTreeBtn: document.getElementById("parseTreeBtn"),
   parseTreeModal: document.getElementById("parseTreeModal"),
   parseTreeCloseBtn: document.getElementById("parseTreeCloseBtn"),
+  helpModal: document.getElementById("helpModal"),
+  aboutModal: document.getElementById("aboutModal"),
+  btnHelpCloseX: document.getElementById("btnHelpCloseX"),
+  btnAboutCloseX: document.getElementById("btnAboutCloseX"),
+  aboutShowOnStartup: document.getElementById("aboutShowOnStartup"),
   parseTreeTitle: document.getElementById("parseTreeTitle"),
   parseTreeStatus: document.getElementById("parseTreeStatus"),
   parseTreeSvg: document.getElementById("parseTreeSvg"),
@@ -32,6 +46,30 @@ const state = {
   parseError: null
 };
 
+function setParseTreeEnabled(enabled) {
+  els.parseTreeBtn.disabled = !enabled;
+}
+
+function getShowAboutOnStartupPreference() {
+  try {
+    const raw = localStorage.getItem(ABOUT_SHOW_ON_START_KEY);
+    if (raw === null) {
+      return true;
+    }
+    return raw === "1";
+  } catch (_error) {
+    return true;
+  }
+}
+
+function setShowAboutOnStartupPreference(enabled) {
+  try {
+    localStorage.setItem(ABOUT_SHOW_ON_START_KEY, enabled ? "1" : "0");
+  } catch (_error) {
+    // Ignore storage write failures.
+  }
+}
+
 function saveWorkspace() {
   const payload = {
     selectedExample: state.selectedExample,
@@ -47,14 +85,14 @@ function loadWorkspace() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return;
+      return false;
     }
 
     const stored = JSON.parse(raw);
     if (stored.selectedExample && EXAMPLES[stored.selectedExample]) {
       state.selectedExample = stored.selectedExample;
     }
-    if (typeof stored.grammarText === "string" && stored.grammarText.trim()) {
+    if (typeof stored.grammarText === "string") {
       state.grammarText = stored.grammarText;
     }
     if (typeof stored.selectedStartSymbol === "string" && stored.selectedStartSymbol.trim()) {
@@ -66,8 +104,11 @@ function loadWorkspace() {
     if (typeof stored.testInput === "string") {
       els.testInput.value = stored.testInput;
     }
+
+    return true;
   } catch (_error) {
     localStorage.removeItem(STORAGE_KEY);
+    return false;
   }
 }
 
@@ -129,7 +170,7 @@ function syncGrammarHighlightScroll() {
 
 function renderWarnings(messages) {
   if (!messages.length) {
-    els.warningsValue.textContent = "No warnings.";
+    els.warningsValue.innerHTML = '<span class="message-pill message-pill-ok">No warnings.</span>';
     return;
   }
 
@@ -279,8 +320,7 @@ function renderParseTreeSvg(tree) {
   );
 
   const edgeMarkup = edges.map((edge) => {
-    const midY = Math.round((edge.y1 + edge.y2) / 2);
-    return `<path class="parse-tree-edge" d="M ${edge.x1} ${edge.y1} C ${edge.x1} ${midY}, ${edge.x2} ${midY}, ${edge.x2} ${edge.y2}" />`;
+    return `<line class="parse-tree-edge" x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" />`;
   }).join("");
 
   const nodeMarkup = nodes.map(({ node, x, y, labelWidth, depth }) => {
@@ -345,6 +385,37 @@ function closeParseTreeModal() {
   els.parseTreeBtn.focus();
 }
 
+function openAboutModal(options = {}) {
+  const { focusClose = true } = options;
+  els.aboutModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  toggleMenu(false);
+  if (focusClose) {
+    window.requestAnimationFrame(() => {
+      els.btnAboutCloseX.focus();
+    });
+  }
+}
+
+function closeAboutModal() {
+  els.aboutModal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+function openHelpModal() {
+  els.helpModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  toggleMenu(false);
+  window.requestAnimationFrame(() => {
+    els.btnHelpCloseX.focus();
+  });
+}
+
+function closeHelpModal() {
+  els.helpModal.hidden = true;
+  document.body.style.overflow = "";
+}
+
 function applyExample(exampleKey) {
   const example = EXAMPLES[exampleKey];
   if (!example) {
@@ -356,6 +427,33 @@ function applyExample(exampleKey) {
   state.diagramRule = null;
   els.grammarInput.value = example.grammar;
   parseAndRender();
+}
+
+function clearWorkspace() {
+  state.selectedStartSymbol = null;
+  state.diagramRule = null;
+  state.parsed = null;
+  state.parseError = null;
+
+  els.grammarInput.value = "";
+  els.testInput.value = "";
+  els.testInput.classList.remove("test-pass", "test-fail");
+  setParseTreeEnabled(false);
+
+  renderGrammarHighlight();
+  setStartSymbolOptions(null);
+  setDiagramRuleOptions(null);
+  renderWarnings([]);
+  renderDiagram();
+
+  saveWorkspace();
+}
+
+function toggleMenu(open) {
+  const isOpen = open !== undefined ? open : !els.appMenu.classList.contains("is-open");
+  els.appMenu.classList.toggle("is-open", isOpen);
+  els.btnHamburger.setAttribute("aria-expanded", String(isOpen));
+  els.btnHamburger.classList.toggle("is-open", isOpen);
 }
 
 function parseAndRender() {
@@ -388,6 +486,7 @@ function parseAndRender() {
 
 function testCurrentString() {
   els.testInput.classList.remove("test-pass", "test-fail");
+  setParseTreeEnabled(false);
 
   const inputValue = els.testInput.value;
 
@@ -404,15 +503,15 @@ function testCurrentString() {
 
   const result = testString(grammarForTest, inputValue);
   els.testInput.classList.add(result.accepted ? "test-pass" : "test-fail");
+  setParseTreeEnabled(result.accepted);
   saveWorkspace();
 }
 
 function populateExamples() {
   const options = Object.entries(EXAMPLES)
-    .map(([key, example]) => `<option value="${key}">${escapeHtml(example.title)}</option>`)
+    .map(([key, example]) => `<li><button class="menu-preset-btn" data-example-key="${escapeHtml(key)}" type="button">${escapeHtml(example.title)}</button></li>`)
     .join("");
-  els.exampleSelect.innerHTML = options;
-  els.exampleSelect.value = state.selectedExample;
+  els.menuExamplesList.innerHTML = options;
 }
 
 function attachEvents() {
@@ -453,9 +552,28 @@ function attachEvents() {
     }, 120);
   });
 
-  els.exampleSelect.addEventListener("change", () => {
-    applyExample(els.exampleSelect.value);
+  els.menuExamplesToggle.addEventListener("click", () => {
+    const expanded = els.menuExamplesToggle.getAttribute("aria-expanded") === "true";
+    els.menuExamplesToggle.setAttribute("aria-expanded", String(!expanded));
+    els.menuExamplesList.hidden = expanded;
+    els.menuExamplesToggle.querySelector(".concertina-arrow").textContent = expanded ? "▸" : "▾";
   });
+
+  els.menuExamplesList.addEventListener("click", (event) => {
+    const target = event.target.closest(".menu-preset-btn");
+    if (!target) {
+      return;
+    }
+
+    applyExample(target.dataset.exampleKey);
+    toggleMenu(false);
+  });
+
+  els.btnHamburger.addEventListener("click", () => toggleMenu());
+  els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
+  els.menuHelp.addEventListener("click", openHelpModal);
+  els.menuAbout.addEventListener("click", openAboutModal);
+  els.btnFooterHelp.addEventListener("click", openHelpModal);
 
   els.startSymbolSelect.addEventListener("change", () => {
     state.selectedStartSymbol = els.startSymbolSelect.value || null;
@@ -476,29 +594,77 @@ function attachEvents() {
       closeParseTreeModal();
     }
   });
+  els.helpModal.addEventListener("click", (event) => {
+    if (event.target === els.helpModal) {
+      closeHelpModal();
+    }
+  });
+  els.aboutModal.addEventListener("click", (event) => {
+    if (event.target === els.aboutModal) {
+      closeAboutModal();
+    }
+  });
+  els.btnHelpCloseX.addEventListener("click", closeHelpModal);
+  els.btnAboutCloseX.addEventListener("click", closeAboutModal);
+  els.aboutShowOnStartup.addEventListener("change", () => {
+    setShowAboutOnStartupPreference(els.aboutShowOnStartup.checked);
+  });
 
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.appMenu.classList.contains("is-open")) {
+      toggleMenu(false);
+      return;
+    }
+
+    if (event.key === "Escape" && !els.helpModal.hidden) {
+      closeHelpModal();
+      return;
+    }
+
+    if (event.key === "Escape" && !els.aboutModal.hidden) {
+      closeAboutModal();
+      return;
+    }
+
     if (event.key === "Escape" && !els.parseTreeModal.hidden) {
       closeParseTreeModal();
     }
   });
 
+  document.addEventListener("click", (event) => {
+    if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
+      toggleMenu(false);
+    }
+  });
+
   els.resetGrammarBtn.addEventListener("click", () => {
-    applyExample(DEFAULT_EXAMPLE_KEY);
-    els.exampleSelect.value = DEFAULT_EXAMPLE_KEY;
+    clearWorkspace();
   });
 }
 
 function init() {
+  const showAboutOnStartup = getShowAboutOnStartupPreference();
+  els.aboutShowOnStartup.checked = showAboutOnStartup;
+
   populateExamples();
-  loadWorkspace();
+  const restoredFromStorage = loadWorkspace();
+  if (!restoredFromStorage) {
+    state.selectedExample = DEFAULT_EXAMPLE_KEY;
+    state.grammarText = EXAMPLES[DEFAULT_EXAMPLE_KEY].grammar;
+    state.selectedStartSymbol = "expression";
+    state.diagramRule = "number-tail";
+    els.testInput.value = DEFAULT_FIRST_RUN_TEST_INPUT;
+  }
   populateExamples();
   els.grammarInput.value = state.grammarText;
-  els.exampleSelect.value = state.selectedExample;
   renderGrammarHighlight();
   syncGrammarHighlightScroll();
   parseAndRender();
   attachEvents();
+
+  if (showAboutOnStartup) {
+    openAboutModal({ focusClose: false });
+  }
 }
 
 init();
