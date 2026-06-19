@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Syntaxor - BNF Grammar Lab</title>
+  <meta
+    name="description"
+    content="Syntaxor lets students write BNF rules, test strings against those rules, and inspect the generated syntax diagram."
+  />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/svg+xml" href="images/syntaxor-logo.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="dark">
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="images/syntaxor-logo.svg" alt="" />
+        </div>
+        <div class="brand-text">
+          <h1>Syntaxor <span class="brand-tagline">BNF Grammar Lab</span></h1>
+          <p>Write rules, test strings, inspect the diagram.</p>
+        </div>
+      </div>
+      <button id="btnHamburger" class="hamburger-btn" aria-label="Open menu" aria-expanded="false" aria-controls="appMenu" type="button">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <nav id="appMenu" class="app-menu" aria-label="Application menu">
+      <div class="menu-header">
+        <span class="menu-title">MENU</span>
+        <button id="btnMenuClose" class="menu-close-btn" type="button" aria-label="Close menu" title="Close menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+        </button>
+      </div>
+      <div class="menu-inner">
+        <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
+          Examples <span class="concertina-arrow">▸</span>
+        </button>
+        <ul id="menuExamplesList" class="menu-concertina-list" hidden></ul>
+        <button class="menu-item-btn" id="menuHelp" type="button">Help</button>
+        <button class="menu-item-btn" id="menuAbout" type="button">About</button>
+      </div>
+    </nav>
+
+    <main class="layout">
+      <section class="editor-panel card">
+        <div class="panel-head">
+          <h2>Grammar Workspace</h2>
+          <div class="panel-actions compact action-stack">
+            <button
+              id="resetGrammarBtn"
+              class="btn-clear-states"
+              type="button"
+              aria-label="Clear workspace"
+              title="Clear workspace"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h4v2H4V5h4l1-2z"/><path d="M7 7l1 13h8l1-13"/><path d="M10 10v7"/><path d="M14 10v7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="grammar-editor">
+          <pre id="grammarHighlight" class="grammar-highlight" aria-hidden="true"></pre>
+          <textarea
+            id="grammarInput"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder="&lt;digit&gt; ::= &quot;0&quot; | &quot;1&quot; | &quot;2&quot;"
+          ></textarea>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">SELECT TEST RULE</span>
+            <select id="startSymbolSelect" class="summary-select" aria-label="Start rule" disabled>
+              <option value="">-</option>
+            </select>
+          </article>
+          <article class="summary-card">
+            <div class="summary-card-head">
+              <label class="summary-label" for="testInput">ENTER STRING TO TEST</label>
+              <button id="parseTreeBtn" class="summary-action-btn" type="button">Parse tree</button>
+            </div>
+            <input id="testInput" class="summary-input" type="text" spellcheck="false" autocomplete="off" />
+          </article>
+          <article class="summary-card summary-card-wide">
+            <span class="summary-label">Status</span>
+            <div id="warningsValue" class="message-list muted-copy">No warnings.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="diagram-panel card">
+        <div class="panel-head">
+          <h2>Syntax Diagram</h2>
+          <div class="panel-actions compact">
+              <label class="inline-label" for="diagramRuleSelect">SELECT RULE</label>
+            <select id="diagramRuleSelect" disabled>
+              <option value="">-</option>
+            </select>
+          </div>
+        </div>
+        <div class="diagram-frame">
+          <div id="diagramRuleTitle" class="diagram-rule-title" hidden></div>
+          <svg id="diagram" viewBox="0 0 960 420" preserveAspectRatio="xMidYMid meet" aria-label="Syntax diagram"></svg>
+          <div id="diagramEmptyState" class="diagram-empty-state" hidden>
+            Enter a valid grammar to build the diagram.
+          </div>
+        </div>
+      </section>
+
+      <footer class="workspace-footer" aria-label="Site footer">
+        <div class="workspace-footer-copy">
+          &copy; 2026 Neil Kendall More @
+          <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a>
+        </div>
+        <button id="btnFooterHelp" type="button">Help</button>
+      </footer>
+    </main>
+
+    <div id="parseTreeModal" class="modal-overlay" hidden>
+      <div class="modal-dialog parse-tree-modal" role="dialog" aria-modal="true" aria-labelledby="parseTreeTitle">
+        <div class="modal-head">
+          <h2 id="parseTreeTitle">Parse Tree</h2>
+          <button id="parseTreeCloseBtn" class="rule-del-btn" type="button" aria-label="Close parse tree" title="Close parse tree">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="parseTreeStatus" class="modal-status"></p>
+          <div class="parse-tree-frame">
+            <svg id="parseTreeSvg" viewBox="0 0 960 260" preserveAspectRatio="xMidYMid meet" aria-label="Parse tree"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="aboutModal" class="modal-backdrop" hidden>
+      <div class="modal about-modal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+        <h3 id="aboutModalTitle">About Syntaxor</h3>
+        <button id="btnAboutCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close about" title="Close about">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+        </button>
+        <div class="about-modal-content">
+          <img class="about-modal-image" src="images/syntaxor-logo.svg" alt="Syntaxor logo" />
+          <p>Syntaxor is a BNF grammar lab designed for fast classroom demonstrations and student experimentation.</p>
+          <p>Write grammar rules, test candidate strings, and inspect generated syntax diagrams in one workspace.</p>
+          <label class="about-startup-toggle" for="aboutShowOnStartup">
+            <input id="aboutShowOnStartup" type="checkbox" />
+            <span>Show this on start-up</span>
+          </label>
+          <p>&copy; 2026 Neil Kendall - More @ <a href="https://www.korovatron.co.uk" target="_blank" rel="noopener noreferrer">www.korovatron.co.uk</a></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="modal-backdrop" hidden>
+      <div class="modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <h3 id="helpModalTitle">Quick Help</h3>
+        <button id="btnHelpCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close help" title="Close help">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+        </button>
+        <p><strong>Examples</strong><br />Open the top-right menu and expand Examples to load a starter grammar.</p>
+        <p><strong>Grammar Workspace</strong><br />Type rules in BNF. Empty string markers entered as "" are converted to ε automatically.</p>
+        <p><strong>Testing</strong><br />Choose a rule with <span class="help-action-chip help-action-chip-row">SELECT TEST RULE</span>, then use <span class="help-action-chip help-action-chip-row">ENTER STRING TO TEST</span> to check if the string is accepted.</p>
+        <p><strong>Status</strong><br />The Status badge shows whether there are grammar issues (red outline) or no issues (white outline).</p>
+        <p><strong>Syntax Diagram</strong><br />Use <span class="help-action-chip help-action-chip-row">SELECT RULE</span> to switch the displayed diagram between grammar rules.</p>
+        <p><strong>Clear Workspace</strong><br />Use the red dustbin button in Grammar Workspace to clear grammar and test input.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
