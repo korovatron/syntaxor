@@ -127,6 +127,7 @@ select {
 input,
 textarea {
   padding: 10px 12px;
+  font-size: 16px;
 }
 
 textarea {
@@ -550,7 +551,7 @@ textarea {
   border: 0;
   border-radius: 0;
   font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
@@ -941,14 +942,33 @@ textarea {
     padding: 8px;
   }
 
-  .top-bar,
-  .panel-head {
-    flex-direction: column;
-    align-items: stretch;
+  .top-bar {
+    align-items: center;
+    gap: 10px;
   }
 
   .brand {
-    align-items: flex-start;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-text {
+    min-width: 0;
+  }
+
+  .panel-head {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .panel-head h2 {
+    min-width: 0;
+  }
+
+  .panel-actions.compact {
+    flex-wrap: nowrap;
+    gap: 6px;
   }
 
   .summary-grid {
@@ -1141,14 +1161,16 @@ textarea {
   z-index: 30;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: 30px;
   background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(4px);
 }
 
 .modal-dialog {
-  width: min(1400px, 96vw);
-  max-height: 96vh;
+  width: calc(100vw - 60px);
+  max-width: calc(100vw - 60px);
+  height: calc(100dvh - 60px);
+  max-height: calc(100dvh - 60px);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
@@ -1177,15 +1199,93 @@ textarea {
 .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-height: 0;
   flex: 1;
-  padding: 16px;
+  padding: 10px;
   background: #000000;
 }
 
 .info-modal {
   width: min(620px, 96vw);
+}
+
+#helpModal.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 16px;
+  box-sizing: border-box;
+  z-index: 9999;
+  color: var(--ink);
+}
+
+#helpModal .modal {
+  width: min(640px, calc(100vw - 24px));
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #5a4da8;
+  background: #000000;
+  box-shadow: 0 8px 20px rgba(10, 6, 30, 0.4);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+
+#helpModal .modal h3 {
+  margin: 0 0 10px;
+  padding-right: 42px;
+}
+
+#helpModal .modal > h3 {
+  margin: -14px -14px 10px;
+  padding: 10px 46px 10px 14px;
+  border-bottom: 1px solid #5a4da8;
+  background: linear-gradient(180deg, #3f3386, #2e2468);
+  color: #e8edf2;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+#helpModal .modal-close-x {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+}
+
+#helpModal .rule-del-btn {
+  min-width: 28px;
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #8f1c1c;
+  background: #cf2a2a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0;
+  line-height: 1;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+#helpModal .rule-del-btn:hover:not(:disabled) {
+  background: #e13c3c;
+  border-color: #a52323;
+  box-shadow: 0 5px 12px rgba(207, 42, 42, 0.45);
+  transform: translateY(-1px);
 }
 
 #aboutModal .rule-del-btn:hover:not(:disabled) {
@@ -1195,48 +1295,61 @@ textarea {
   transform: translateY(-1px);
 }
 
+#helpModal .rule-del-btn:focus-visible {
+  outline: 2px solid #fff3a6;
+  outline-offset: 1px;
+}
+
 #aboutModal .rule-del-btn:focus-visible {
   outline: 2px solid #fff3a6;
   outline-offset: 1px;
 }
 
-.help-modal {
-  width: min(620px, calc(100vw - 24px));
-  display: grid;
-  gap: 10px;
-}
-
-.help-modal p {
-  margin: 0;
-  padding: 10px 12px 11px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background:
-    radial-gradient(120% 170% at 10% 12%, rgba(255, 255, 255, 0.04) 0%, transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.1));
-  line-height: 1.45;
-}
-
-.help-modal p strong {
+#helpModal .rule-del-btn svg {
+  width: 16px;
+  height: 16px;
   display: block;
-  margin: 0 0 4px;
-  padding: 0 0 4px;
-  border-bottom: 1px solid var(--line);
-  color: #ffe28a;
-  font-size: 1.12rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 
-.help-modal p strong + br {
+#helpModal .modal p {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #5a4da8;
+  border-radius: 10px;
+  background: #000000;
+  line-height: 1.4;
+}
+
+#helpModal .modal p:last-child {
+  margin-bottom: 0;
+}
+
+#helpModal .modal p strong {
+  display: block;
+  position: relative;
+  margin: -10px -12px 8px;
+  padding: 8px 12px;
+  color: #f2d86b;
+}
+
+#helpModal .modal p strong::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  border-bottom: 1px solid #5a4da8;
+}
+
+#helpModal .modal p > br {
   display: none;
 }
 
-.help-modal .help-symbol-chip {
-  margin-top: -1px;
-}
-
-.help-modal a {
+#helpModal .modal a {
   color: var(--accent);
 }
 
@@ -1265,8 +1378,8 @@ textarea {
   color: #f7f7ff;
 }
 
-.help-modal a:hover,
-.help-modal a:focus-visible {
+#helpModal .modal a:hover,
+#helpModal .modal a:focus-visible {
   opacity: 0.8;
 }
 
@@ -1281,7 +1394,7 @@ textarea {
 .parse-tree-frame {
   flex: 1;
   min-height: 0;
-  padding: 0 18px;
+  padding: 0 6px;
   border-radius: 12px;
   background: #000000;
   overflow: auto;

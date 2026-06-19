@@ -2,14 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Syntaxor - BNF Grammar Lab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Syntaxor | BNF Grammar Tool for A Level Computer Science</title>
   <meta
     name="description"
-    content="Syntaxor lets students write BNF rules, test strings against those rules, and inspect the generated syntax diagram."
+    content="Syntaxor is a Backus Naur Form (BNF) playground for A Level Computer Science: build grammar rules, test strings, and visualise syntax and parse trees."
   />
+  <meta property="og:title" content="Syntaxor | BNF Grammar Tool for A Level Computer Science" />
+  <meta property="og:description" content="Syntaxor is a Backus Naur Form (BNF) playground for A Level Computer Science: build grammar rules, test strings, and visualise syntax and parse trees." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Syntaxor" />
+  <meta property="og:image" content="images/preview.png" />
+  <meta property="og:image:alt" content="Syntaxor logo" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Syntaxor | BNF Grammar Tool for A Level Computer Science" />
+  <meta name="twitter:description" content="Syntaxor is a Backus Naur Form (BNF) playground for A Level Computer Science: build grammar rules, test strings, and visualise syntax and parse trees." />
+  <meta name="twitter:image" content="images/preview.png" />
   <meta name="theme-color" content="#000000" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Syntaxor" />
   <link rel="icon" type="image/svg+xml" href="images/syntaxor-logo.svg" />
+  <link rel="apple-touch-icon" href="images/syntaxor-logo.svg" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body data-theme="dark">
@@ -20,8 +35,8 @@
           <img src="images/syntaxor-logo.svg" alt="" />
         </div>
         <div class="brand-text">
-          <h1>Syntaxor <span class="brand-tagline">BNF Grammar Lab</span></h1>
-          <p>Write rules, test strings, inspect the diagram.</p>
+          <h1>Syntaxor</h1>
+          <p>BNF playground</p>
         </div>
       </div>
       <button id="btnHamburger" class="hamburger-btn" aria-label="Open menu" aria-expanded="false" aria-controls="appMenu" type="button">
@@ -128,7 +143,15 @@
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="parseTreeTitle">
         <div class="modal-head">
           <h2 id="parseTreeTitle">Parse Tree</h2>
-          <button id="parseTreeCloseBtn" type="button">Close</button>
+          <button
+            id="parseTreeCloseBtn"
+            class="rule-del-btn"
+            type="button"
+            aria-label="Close parse tree"
+            title="Close parse tree"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+          </button>
         </div>
         <div class="modal-body">
           <p id="parseTreeStatus" class="modal-status"></p>
@@ -149,6 +172,7 @@
           <img class="about-modal-image" src="images/syntaxor-logo.svg" alt="Syntaxor logo" />
           <p>Syntaxor is a BNF grammar lab designed for fast classroom demonstrations and student experimentation.</p>
           <p>Write grammar rules, test candidate strings, and inspect generated syntax diagrams in one workspace.</p>
+          <p>Version: <strong id="aboutVersion"></strong></p>
           <label class="about-startup-toggle" for="aboutShowOnStartup">
             <input id="aboutShowOnStartup" type="checkbox" />
             <span>Show this on start-up</span>
