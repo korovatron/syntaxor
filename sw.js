@@ -1,4 +1,4 @@
-const CACHE_VERSION = "0.1.6";
+const CACHE_VERSION = "0.1.7";
 const CACHE_NAME = `syntaxor-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -7,11 +7,7 @@ const APP_SHELL = [
   "./app.js",
   "./syntaxor-core.js",
   "./manifest.webmanifest",
-  "./images/syntaxor-logo.svg",
-  "./images/preview.png",
-  "./images/logo_180.png",
-  "./images/logo_192.png",
-  "./images/logo_512.png"
+  "./images/syntaxor-logo.svg"
 ];
 const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/syntaxor-core.js", "/manifest.webmanifest"];
 
