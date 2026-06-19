@@ -7,7 +7,8 @@ const APP_SHELL = [
   "./app.js",
   "./syntaxor-core.js",
   "./manifest.webmanifest",
-  "./images/syntaxor-logo.svg"
+  "./images/syntaxor-logo.svg",
+  "./images/preview.png"
 ];
 const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/syntaxor-core.js", "/manifest.webmanifest"];
 
