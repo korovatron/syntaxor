@@ -1227,7 +1227,7 @@ textarea {
   color: var(--ink);
 }
 
-#helpModal .modal {
+.help-modal {
   width: min(640px, calc(100vw - 24px));
   margin: 0 auto;
   position: relative;
@@ -1241,12 +1241,12 @@ textarea {
   overflow: auto;
 }
 
-#helpModal .modal h3 {
+.help-modal h3 {
   margin: 0 0 10px;
   padding-right: 42px;
 }
 
-#helpModal .modal > h3 {
+.help-modal > h3 {
   margin: -14px -14px 10px;
   padding: 10px 46px 10px 14px;
   border-bottom: 1px solid #5a4da8;
@@ -1256,13 +1256,13 @@ textarea {
   border-top-right-radius: 10px;
 }
 
-#helpModal .modal-close-x {
+.help-modal .modal-close-x {
   position: absolute;
   top: 8px;
   right: 10px;
 }
 
-#helpModal .rule-del-btn {
+.help-modal .rule-del-btn {
   min-width: 28px;
   width: 28px;
   min-height: 28px;
@@ -1281,7 +1281,7 @@ textarea {
   box-shadow: none;
 }
 
-#helpModal .rule-del-btn:hover:not(:disabled) {
+.help-modal .rule-del-btn:hover:not(:disabled) {
   background: #e13c3c;
   border-color: #a52323;
   box-shadow: 0 5px 12px rgba(207, 42, 42, 0.45);
@@ -1295,7 +1295,7 @@ textarea {
   transform: translateY(-1px);
 }
 
-#helpModal .rule-del-btn:focus-visible {
+.help-modal .rule-del-btn:focus-visible {
   outline: 2px solid #fff3a6;
   outline-offset: 1px;
 }
@@ -1305,7 +1305,7 @@ textarea {
   outline-offset: 1px;
 }
 
-#helpModal .rule-del-btn svg {
+.help-modal .rule-del-btn svg {
   width: 16px;
   height: 16px;
   display: block;
@@ -1315,7 +1315,7 @@ textarea {
   stroke-linecap: round;
 }
 
-#helpModal .modal p {
+.help-modal p {
   margin: 0 0 10px;
   padding: 10px 12px;
   border: 1px solid #5a4da8;
@@ -1324,11 +1324,11 @@ textarea {
   line-height: 1.4;
 }
 
-#helpModal .modal p:last-child {
+.help-modal p:last-child {
   margin-bottom: 0;
 }
 
-#helpModal .modal p strong {
+.help-modal p strong {
   display: block;
   position: relative;
   margin: -10px -12px 8px;
@@ -1336,7 +1336,7 @@ textarea {
   color: #f2d86b;
 }
 
-#helpModal .modal p strong::after {
+.help-modal p strong::after {
   content: "";
   position: absolute;
   left: 12px;
@@ -1345,11 +1345,11 @@ textarea {
   border-bottom: 1px solid #5a4da8;
 }
 
-#helpModal .modal p > br {
+.help-modal p > br {
   display: none;
 }
 
-#helpModal .modal a {
+.help-modal a {
   color: var(--accent);
 }
 
@@ -1378,8 +1378,8 @@ textarea {
   color: #f7f7ff;
 }
 
-#helpModal .modal a:hover,
-#helpModal .modal a:focus-visible {
+.help-modal a:hover,
+.help-modal a:focus-visible {
   opacity: 0.8;
 }
 
