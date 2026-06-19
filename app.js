@@ -1,6 +1,6 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "0.1.1";
+const APP_VERSION = "0.1.2";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -45,7 +45,11 @@ const state = {
   selectedStartSymbol: null,
   diagramRule: null,
   parsed: null,
-  parseError: null
+  parseError: null,
+  modalOpenedAt: 0,
+  parseTreeModalOverlay: null,
+  aboutModalOverlay: null,
+  helpModalOverlay: null
 };
 
 function setParseTreeEnabled(enabled) {
@@ -373,8 +377,27 @@ function renderParseTreeModal() {
 }
 
 function openParseTreeModal() {
+  if (state.parseTreeModalOverlay) {
+    return;
+  }
   renderParseTreeModal();
-  els.parseTreeModal.hidden = false;
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.78);z-index:9999;display:grid;place-items:center;padding:12px;box-sizing:border-box;";
+  const content = els.parseTreeModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeParseTreeModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.parseTreeModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   window.requestAnimationFrame(() => {
     els.parseTreeCloseBtn.focus();
@@ -382,14 +405,41 @@ function openParseTreeModal() {
 }
 
 function closeParseTreeModal() {
-  els.parseTreeModal.hidden = true;
+  if (!state.parseTreeModalOverlay) {
+    return;
+  }
+  const content = state.parseTreeModalOverlay.firstElementChild;
+  if (content) {
+    els.parseTreeModal.appendChild(content);
+  }
+  state.parseTreeModalOverlay.remove();
+  state.parseTreeModalOverlay = null;
   document.body.style.overflow = "";
   els.parseTreeBtn.focus();
 }
 
 function openAboutModal(options = {}) {
+  if (state.aboutModalOverlay) {
+    return;
+  }
   const { focusClose = true } = options;
-  els.aboutModal.hidden = false;
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.aboutModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeAboutModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.aboutModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   toggleMenu(false);
   if (focusClose) {
@@ -400,12 +450,39 @@ function openAboutModal(options = {}) {
 }
 
 function closeAboutModal() {
-  els.aboutModal.hidden = true;
+  if (!state.aboutModalOverlay) {
+    return;
+  }
+  const content = state.aboutModalOverlay.firstElementChild;
+  if (content) {
+    els.aboutModal.appendChild(content);
+  }
+  state.aboutModalOverlay.remove();
+  state.aboutModalOverlay = null;
   document.body.style.overflow = "";
 }
 
 function openHelpModal() {
-  els.helpModal.hidden = false;
+  if (state.helpModalOverlay) {
+    return;
+  }
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.helpModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeHelpModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.helpModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   toggleMenu(false);
   window.requestAnimationFrame(() => {
@@ -414,7 +491,15 @@ function openHelpModal() {
 }
 
 function closeHelpModal() {
-  els.helpModal.hidden = true;
+  if (!state.helpModalOverlay) {
+    return;
+  }
+  const content = state.helpModalOverlay.firstElementChild;
+  if (content) {
+    els.helpModal.appendChild(content);
+  }
+  state.helpModalOverlay.remove();
+  state.helpModalOverlay = null;
   document.body.style.overflow = "";
 }
 
@@ -591,21 +676,6 @@ function attachEvents() {
 
   els.parseTreeBtn.addEventListener("click", openParseTreeModal);
   els.parseTreeCloseBtn.addEventListener("click", closeParseTreeModal);
-  els.parseTreeModal.addEventListener("click", (event) => {
-    if (event.target === els.parseTreeModal) {
-      closeParseTreeModal();
-    }
-  });
-  els.helpModal.addEventListener("click", (event) => {
-    if (event.target === els.helpModal) {
-      closeHelpModal();
-    }
-  });
-  els.aboutModal.addEventListener("click", (event) => {
-    if (event.target === els.aboutModal) {
-      closeAboutModal();
-    }
-  });
   els.btnHelpCloseX.addEventListener("click", closeHelpModal);
   els.btnAboutCloseX.addEventListener("click", closeAboutModal);
   els.aboutShowOnStartup.addEventListener("change", () => {
@@ -618,17 +688,17 @@ function attachEvents() {
       return;
     }
 
-    if (event.key === "Escape" && !els.helpModal.hidden) {
+    if (event.key === "Escape" && state.helpModalOverlay) {
       closeHelpModal();
       return;
     }
 
-    if (event.key === "Escape" && !els.aboutModal.hidden) {
+    if (event.key === "Escape" && state.aboutModalOverlay) {
       closeAboutModal();
       return;
     }
 
-    if (event.key === "Escape" && !els.parseTreeModal.hidden) {
+    if (event.key === "Escape" && state.parseTreeModalOverlay) {
       closeParseTreeModal();
     }
   });
