@@ -465,42 +465,40 @@ function openAboutModal(options = {}) {
     });
   }
 }
-      if (!state.aboutModalOverlay) {
-        return;
-      }
-      const content = state.aboutModalOverlay.firstElementChild;
-      if (content) {
-        els.aboutModal.appendChild(content);
-      }
-      state.aboutModalOverlay.remove();
-      state.aboutModalOverlay = null;
-
 function closeAboutModal() {
-  els.aboutModal.hidden = true;
+  if (!state.aboutModalOverlay) {
+    return;
+  }
+  const content = state.aboutModalOverlay.firstElementChild;
+  if (content) {
+    els.aboutModal.appendChild(content);
+  }
+  state.aboutModalOverlay.remove();
+  state.aboutModalOverlay = null;
   document.body.style.overflow = "";
-      if (state.helpModalOverlay) {
-        return;
-      }
-      state.modalOpenedAt = performance.now();
-      const overlay = document.createElement("div");
-      overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
-      const content = els.helpModal.firstElementChild;
-      if (content) {
-        overlay.appendChild(content);
-      }
-      overlay.addEventListener("click", (event) => {
-        if (performance.now() - state.modalOpenedAt < 350) {
-          return;
-        }
-        if (event.target === overlay) {
-          closeHelpModal();
-        }
-      });
-      document.body.appendChild(overlay);
-      state.helpModalOverlay = overlay;
+}
 
 function openHelpModal() {
-  els.helpModal.hidden = false;
+  if (state.helpModalOverlay) {
+    return;
+  }
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.helpModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeHelpModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.helpModalOverlay = overlay;
   document.body.style.overflow = "hidden";
   toggleMenu(false);
   window.requestAnimationFrame(() => {
