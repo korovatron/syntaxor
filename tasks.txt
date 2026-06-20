@@ -93,4 +93,11 @@ description: Build a grammar that accepts valid email addresses.
 test: alex@clockwork.orange.com => ACCEPT
 test: @superman => REJECT
 test: .clark@superman.d => REJECT
+===
 
+title: Floating point
+description: Build a grammar that accepts valid floating point numbers.
+test: 3 => ACCEPT
+test: -4.5 => ACCEPT
+test: 6.7E-8 => ACCEPT
+test: -3.14e+8 => ACCEPT

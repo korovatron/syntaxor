@@ -145,5 +145,30 @@ Build a grammar that accepts valid email addresses.
 
 ====================================================================
 
+Task 13: Floating point numbers.
+Build a grammar that accepts valid floating point numbers.
+
+<number> ::= <opt-sign> <mantissa> <opt-exp>
+
+<opt-sign> ::= ε | "+" | "-"
+
+<mantissa> ::= <unsigned>
+             | <unsigned> "." <unsigned>
+
+<opt-exp> ::= ε
+            | <exp>
+
+<exp> ::= "E" <opt-sign> <unsigned>
+        | "e" <opt-sign> <unsigned>
+
+<unsigned> ::= <digit>
+             | <digit> <unsigned>
+
+<digit> ::= "0" | "1" | "2" | "3" | "4"
+          | "5" | "6" | "7" | "8" | "9"
+
+
+====================================================================
+
 
 
