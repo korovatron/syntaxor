@@ -633,7 +633,10 @@ textarea {
   right: 12px;
   bottom: 10px;
   z-index: 5;
-  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(12, 10, 30, 0.28);
@@ -643,6 +646,48 @@ textarea {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   backdrop-filter: blur(1px);
+}
+
+.snippet-hint-key {
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+.snippet-hint-plus {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.snippet-hint-mouse {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.snippet-hint-mouse svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: currentColor;
+  stroke: none;
+}
+
+.snippet-hint-label {
+  letter-spacing: 0.04em;
 }
 
 .grammar-snippet-menu {

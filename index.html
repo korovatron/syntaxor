@@ -82,7 +82,16 @@
         </div>
 
         <div id="grammarEditor" class="grammar-editor" aria-label="Grammar editor">
-          <div class="grammar-snippet-hint" aria-hidden="true">SHIFT + RIGHT-CLICK to insert snippets</div>
+          <div class="grammar-snippet-hint" aria-hidden="true" title="Hold Shift and right-click in the Grammar Workspace to open snippet options">
+            <span class="snippet-hint-key">Shift</span>
+            <span class="snippet-hint-plus">+</span>
+            <span class="snippet-hint-mouse" title="Right mouse button">
+              <svg viewBox="0 0 356.572 356.572" role="img" focusable="false" aria-hidden="true">
+                <path d="M181.563 0C120.762 0 59.215 30.525 59.215 88.873V237.5c0 65.658 53.412 119.071 119.071 119.071c65.658 0 119.07-53.413 119.07-119.071V88.873C297.356 27.809 237.336 0 181.563 0zM274.945 237.5c0 53.303-43.362 96.657-96.659 96.657c-53.299 0-96.657-43.354-96.657-96.657v-69.513c20.014 6.055 57.685 15.215 102.221 15.215c28.515 0 59.831-3.809 91.095-14.567V237.5zM274.945 144.794c-81.683 31.233-168.353 7.716-193.316-.364V88.873c0-43.168 51.489-66.46 99.934-66.46c46.481 0 93.382 20.547 93.382 66.46V144.794zM190.893 48.389v81.248c0 6.187-5.023 11.208-11.206 11.208c-6.185 0-11.207-5.021-11.207-11.208V48.389c0-6.186 5.021-11.207 11.207-11.207C185.869 37.182 190.893 42.203 190.893 48.389zM264.272 130.378c0 0-46.687 13.072-62.566 10.271V36.988c0 0 74.706.935 62.566 93.39z"></path>
+              </svg>
+            </span>
+            <span class="snippet-hint-label">to insert snippets</span>
+          </div>
         </div>
         <div id="grammarSnippetMenu" class="grammar-snippet-menu" role="menu" aria-label="Grammar insertion menu" hidden>
           <button class="grammar-snippet-btn" type="button" data-snippet-key="digit" role="menuitem">Insert digits set</button>
