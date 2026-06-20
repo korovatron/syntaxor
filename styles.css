@@ -574,10 +574,16 @@ textarea {
 .grammar-editor .cm-content {
   min-height: 100%;
   padding: 10px 12px;
-  white-space: pre-wrap;
+  white-space: break-spaces;
   word-break: break-word;
+  tab-size: 4;
+  -moz-tab-size: 4;
   color: var(--ink);
   caret-color: var(--ink);
+}
+
+.grammar-editor .cm-lineWrapping .cm-content {
+  white-space: break-spaces !important;
 }
 
 .grammar-editor .cm-focused {

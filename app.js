@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.17";
+const APP_VERSION = "1.0.18";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -182,18 +182,19 @@ const grammarEditorTheme = EditorView.theme({
 });
 
 function insertTabAtCaret(view) {
+  const tabText = "    ";
   const changes = [];
   const ranges = [];
 
   for (const range of view.state.selection.ranges) {
-    changes.push({ from: range.from, to: range.to, insert: "\t" });
-    const caret = range.from + 1;
-    ranges.push(EditorSelection.cursor(caret));
+    changes.push({ from: range.from, to: range.to, insert: tabText });
+    ranges.push(EditorSelection.cursor(range.from + tabText.length));
   }
 
   view.dispatch({
     changes,
     selection: EditorSelection.create(ranges),
+    scrollIntoView: true,
     userEvent: "input"
   });
 
@@ -213,6 +214,7 @@ function insertNewlineAtCaret(view) {
   view.dispatch({
     changes,
     selection: EditorSelection.create(ranges),
+    scrollIntoView: true,
     userEvent: "input"
   });
 
