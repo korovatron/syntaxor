@@ -579,6 +579,38 @@ textarea {
   outline: none;
 }
 
+.grammar-snippet-menu {
+  position: fixed;
+  display: grid;
+  min-width: 220px;
+  padding: 8px;
+  gap: 6px;
+  border: 1px solid rgba(255, 243, 166, 0.6);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(46, 36, 104, 0.96), rgba(22, 16, 52, 0.98));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+}
+
+.grammar-snippet-btn {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+  text-align: left;
+  color: var(--ink);
+}
+
+.grammar-snippet-btn:hover,
+.grammar-snippet-btn:focus-visible {
+  background: rgba(255, 216, 107, 0.14);
+  border-color: var(--focus);
+}
+
 .hl-comment {
   color: #8ea0b0;
 }

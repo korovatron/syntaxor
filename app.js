@@ -1,11 +1,16 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
 const DEFAULT_FIRST_RUN_TEST_INPUT = "8*4+21";
 const TASKS_SOURCE_URL = "./tasks.txt";
+const GRAMMAR_SNIPPETS = {
+  digit: buildCharacterRule("digit", "0", "9"),
+  lower: buildCharacterRule("lower", "a", "z"),
+  upper: buildCharacterRule("upper", "A", "Z")
+};
 const IS_IOS_BROWSER = (() => {
   if (typeof navigator === "undefined") {
     return false;
@@ -31,6 +36,7 @@ const els = {
   resetGrammarBtn: document.getElementById("resetGrammarBtn"),
   grammarInput: document.getElementById("grammarInput"),
   grammarHighlight: document.getElementById("grammarHighlight"),
+  grammarSnippetMenu: document.getElementById("grammarSnippetMenu"),
   testInput: document.getElementById("testInput"),
   parseTreeBtn: document.getElementById("parseTreeBtn"),
   parseTreeModal: document.getElementById("parseTreeModal"),
@@ -73,8 +79,21 @@ const state = {
   tasksCatalogError: "",
   currentTaskIndex: 0,
   aboutModalOverlay: null,
-  helpModalOverlay: null
+  helpModalOverlay: null,
+  grammarSnippetMenuOpen: false
 };
+
+function buildCharacterRule(ruleName, startChar, endChar) {
+  const startCode = startChar.charCodeAt(0);
+  const endCode = endChar.charCodeAt(0);
+  const symbols = [];
+
+  for (let code = startCode; code <= endCode; code += 1) {
+    symbols.push(`"${String.fromCharCode(code)}"`);
+  }
+
+  return `<${ruleName}> ::= ${symbols.join(" | ")}`;
+}
 
 function setParseTreeEnabled(enabled) {
   els.parseTreeBtn.disabled = !enabled;
@@ -196,6 +215,58 @@ function renderGrammarHighlight() {
 function syncGrammarHighlightScroll() {
   els.grammarHighlight.scrollTop = els.grammarInput.scrollTop;
   els.grammarHighlight.scrollLeft = els.grammarInput.scrollLeft;
+}
+
+function hideGrammarSnippetMenu() {
+  if (!els.grammarSnippetMenu) {
+    return;
+  }
+
+  els.grammarSnippetMenu.hidden = true;
+  state.grammarSnippetMenuOpen = false;
+}
+
+function showGrammarSnippetMenu(clientX, clientY) {
+  if (!els.grammarSnippetMenu) {
+    return;
+  }
+
+  els.grammarSnippetMenu.hidden = false;
+  const menuWidth = els.grammarSnippetMenu.offsetWidth;
+  const menuHeight = els.grammarSnippetMenu.offsetHeight;
+  const maxLeft = Math.max(12, window.innerWidth - menuWidth - 12);
+  const maxTop = Math.max(12, window.innerHeight - menuHeight - 12);
+  const left = Math.min(clientX, maxLeft);
+  const top = Math.min(clientY, maxTop);
+
+  els.grammarSnippetMenu.style.left = `${left}px`;
+  els.grammarSnippetMenu.style.top = `${top}px`;
+  state.grammarSnippetMenuOpen = true;
+}
+
+function insertGrammarSnippet(snippetKey) {
+  const snippet = GRAMMAR_SNIPPETS[snippetKey];
+  if (!snippet) {
+    return;
+  }
+
+  const start = els.grammarInput.selectionStart ?? els.grammarInput.value.length;
+  const end = els.grammarInput.selectionEnd ?? start;
+  const currentValue = els.grammarInput.value;
+  const before = currentValue.slice(0, start);
+  const after = currentValue.slice(end);
+  const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
+  const needsTrailingBreak = after.length > 0 && !after.startsWith("\n");
+  const insertedSnippet = `${needsLeadingBreak ? "\n" : ""}${snippet}${needsTrailingBreak ? "\n" : ""}`;
+  const nextValue = `${before}${insertedSnippet}${after}`;
+  const nextCaret = before.length + insertedSnippet.length;
+
+  els.grammarInput.value = nextValue;
+  els.grammarInput.focus();
+  els.grammarInput.selectionStart = nextCaret;
+  els.grammarInput.selectionEnd = nextCaret;
+  hideGrammarSnippetMenu();
+  els.grammarInput.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function renderWarnings(messages) {
@@ -921,6 +992,20 @@ function attachEvents() {
   });
 
   els.grammarInput.addEventListener("scroll", syncGrammarHighlightScroll);
+  els.grammarInput.addEventListener("scroll", hideGrammarSnippetMenu);
+  els.grammarInput.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    showGrammarSnippetMenu(event.clientX, event.clientY);
+  });
+
+  els.grammarSnippetMenu.addEventListener("click", (event) => {
+    const target = event.target.closest(".grammar-snippet-btn");
+    if (!target) {
+      return;
+    }
+
+    insertGrammarSnippet(target.dataset.snippetKey);
+  });
 
   let testTimer = null;
   els.testInput.addEventListener("input", () => {
@@ -989,6 +1074,11 @@ function attachEvents() {
       return;
     }
 
+    if (event.key === "Escape" && state.grammarSnippetMenuOpen) {
+      hideGrammarSnippetMenu();
+      return;
+    }
+
     if (event.key === "Escape" && state.helpModalOverlay) {
       closeHelpModal();
       return;
@@ -1029,6 +1119,10 @@ function attachEvents() {
   });
 
   document.addEventListener("click", (event) => {
+    if (state.grammarSnippetMenuOpen && !els.grammarSnippetMenu.contains(event.target)) {
+      hideGrammarSnippetMenu();
+    }
+
     if (els.appMenu.classList.contains("is-open") && !els.appMenu.contains(event.target) && !els.btnHamburger.contains(event.target)) {
       toggleMenu(false);
     }
