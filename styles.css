@@ -868,19 +868,19 @@ textarea {
 }
 
 .rail-node-terminal {
-  fill: none;
+  fill: #000000;
   stroke: #ff4df3;
   stroke-width: 2;
 }
 
 .rail-node-nonterminal {
-  fill: none;
+  fill: #000000;
   stroke: #39ff7a;
   stroke-width: 2;
 }
 
 .rail-node-epsilon {
-  fill: none;
+  fill: #000000;
   stroke: #ffd86b;
   stroke-width: 2;
 }
