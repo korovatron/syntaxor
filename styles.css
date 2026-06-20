@@ -396,7 +396,7 @@ textarea {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
   min-height: 0;
