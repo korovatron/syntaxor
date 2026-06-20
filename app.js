@@ -1,9 +1,9 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 import { EditorState, EditorSelection } from "https://esm.sh/@codemirror/state";
-import { EditorView, Decoration, ViewPlugin, keymap } from "https://esm.sh/@codemirror/view";
+import { EditorView, Decoration, ViewPlugin, MatchDecorator, keymap } from "https://esm.sh/@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "https://esm.sh/@codemirror/commands";
 
-const APP_VERSION = "1.0.7";
+const APP_VERSION = "1.0.8";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -127,67 +127,37 @@ function scheduleGrammarParse() {
   }, 180);
 }
 
-function buildGrammarDecorations(view) {
-  const ranges = [];
-  const nonTerminalRegex = /<[^<>\n]+?>/g;
-  const quotedRegex = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
-  const operatorRegex = /::=|\|/g;
-  const epsilonRegex = /\b(?:epsilon)\b|ε/gi;
+const grammarTokenMatcher = new MatchDecorator({
+  regexp: /\/\/.*|#.*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|<[^<>\n]+?>|::=|\||\b(?:epsilon)\b|ε/gi,
+  decoration: (match) => {
+    const token = match[0];
+    let className = "";
 
-  let cursor = 0;
-  for (let lineNo = 1; lineNo <= view.state.doc.lines; lineNo += 1) {
-    const line = view.state.doc.line(lineNo).text;
-    const lineStart = cursor;
-    const lineLength = line.length;
-    const commentMatch = line.match(/\/\/.*|#.*/);
-    const commentStart = commentMatch ? line.indexOf(commentMatch[0]) : -1;
-    const content = commentStart >= 0 ? line.slice(0, commentStart) : line;
-
-    if (commentStart >= 0) {
-      ranges.push(Decoration.mark({ class: "cm-hl-comment" }).range(
-        lineStart + commentStart,
-        lineStart + lineLength
-      ));
+    if (token.startsWith("//") || token.startsWith("#")) {
+      className = "cm-hl-comment";
+    } else if (token.startsWith("<")) {
+      className = "cm-hl-nonterminal";
+    } else if (token === "::=") {
+      className = "cm-hl-operator";
+    } else if (token === "|") {
+      className = "cm-hl-alternative";
+    } else if (/^(?:epsilon|ε)$/i.test(token)) {
+      className = "cm-hl-epsilon";
+    } else {
+      className = "cm-hl-terminal";
     }
 
-    for (const regex of [quotedRegex, nonTerminalRegex, operatorRegex, epsilonRegex]) {
-      regex.lastIndex = 0;
-      let match;
-      while ((match = regex.exec(content)) !== null) {
-        const token = match[0];
-        const start = lineStart + match.index;
-        const end = start + token.length;
-        let className = "";
-
-        if (regex === quotedRegex) {
-          className = "cm-hl-terminal";
-        } else if (regex === nonTerminalRegex) {
-          className = "cm-hl-nonterminal";
-        } else if (regex === operatorRegex) {
-          className = token === "|" ? "cm-hl-alternative" : "cm-hl-operator";
-        } else {
-          className = "cm-hl-epsilon";
-        }
-
-        ranges.push(Decoration.mark({ class: className }).range(start, end));
-      }
-    }
-
-    cursor += lineLength + 1;
+    return Decoration.mark({ class: className });
   }
-
-  return Decoration.set(ranges, true);
-}
+});
 
 const grammarHighlightPlugin = ViewPlugin.fromClass(class {
   constructor(view) {
-    this.decorations = buildGrammarDecorations(view);
+    this.decorations = grammarTokenMatcher.createDeco(view);
   }
 
   update(update) {
-    if (update.docChanged || update.viewportChanged) {
-      this.decorations = buildGrammarDecorations(update.view);
-    }
+    this.decorations = grammarTokenMatcher.updateDeco(update, this.decorations);
   }
 }, {
   decorations: (instance) => instance.decorations
@@ -1110,8 +1080,10 @@ async function openTasksModal() {
   document.body.style.overflow = "hidden";
   toggleMenu(false);
   window.requestAnimationFrame(() => {
-    if (els.btnTasksModalCloseX) {
-      els.btnTasksModalCloseX.focus();
+    const modalContent = state.tasksModalOverlay?.firstElementChild;
+    if (modalContent instanceof HTMLElement) {
+      modalContent.setAttribute("tabindex", "-1");
+      modalContent.focus({ preventScroll: true });
     }
   });
 

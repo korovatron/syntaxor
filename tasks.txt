@@ -86,3 +86,11 @@ test: 2+3*4 => ACCEPT
 test: 7*(1+2*3)+9 => ACCEPT
 test: 2**3 => REJECT
 test: (3+)*2 => REJECT
+===
+
+title: Email address
+description: Build a grammar that accepts valid email addresses.
+test: alex@clockwork.orange.com => ACCEPT
+test: @superman => REJECT
+test: .clark@superman.d => REJECT
+
