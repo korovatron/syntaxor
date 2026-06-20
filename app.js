@@ -235,7 +235,7 @@ function normaliseEmptyStringMarkers() {
   const beforeHead = text.slice(0, head);
   const replacementsBeforeHead = (beforeHead.match(/""/g) || []).length;
   const nextText = text.replace(/""/g, "ε");
-  const nextHead = head + replacementsBeforeHead;
+  const nextHead = Math.max(0, head - replacementsBeforeHead);
   setGrammarText(nextText, nextHead);
 }
 
