@@ -5,12 +5,13 @@ const APP_SHELL = [
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./vendor/codemirror.js",
   "./syntaxor-core.js",
   "./manifest.webmanifest",
   "./images/syntaxor-logo.svg",
   "./images/preview.png"
 ];
-const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/syntaxor-core.js", "/manifest.webmanifest"];
+const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/vendor/codemirror.js", "/syntaxor-core.js", "/manifest.webmanifest"];
 
 function isAppShellPath(pathname) {
   if (APP_SHELL_FILES.includes(pathname)) {

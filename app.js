@@ -1,7 +1,16 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
-import { EditorState, EditorSelection } from "https://esm.sh/@codemirror/state";
-import { EditorView, Decoration, ViewPlugin, MatchDecorator, keymap } from "https://esm.sh/@codemirror/view";
-import { defaultKeymap, history, historyKeymap } from "https://esm.sh/@codemirror/commands";
+import {
+  EditorState,
+  EditorSelection,
+  EditorView,
+  Decoration,
+  ViewPlugin,
+  MatchDecorator,
+  keymap,
+  defaultKeymap,
+  history,
+  historyKeymap
+} from "./vendor/codemirror.js";
 
 const APP_VERSION = "1.0.8";
 const STORAGE_KEY = "syntaxor.workspace.v1";
