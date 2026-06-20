@@ -957,6 +957,7 @@ function populateExamples() {
 
 function attachEvents() {
   let parseTimer = null;
+  let parseTreeViewportTimer = null;
 
   const isTextEntryTarget = (target) => {
     if (!(target instanceof Element)) {
@@ -1067,6 +1068,22 @@ function attachEvents() {
   els.aboutShowOnStartup.addEventListener("change", () => {
     setShowAboutOnStartupPreference(els.aboutShowOnStartup.checked);
   });
+
+  const scheduleParseTreeViewportRender = () => {
+    if (!state.parseTreeModalOverlay) {
+      return;
+    }
+    window.clearTimeout(parseTreeViewportTimer);
+    parseTreeViewportTimer = window.setTimeout(() => {
+      renderParseTreeModal();
+    }, 120);
+  };
+
+  window.addEventListener("resize", scheduleParseTreeViewportRender);
+  window.addEventListener("orientationchange", scheduleParseTreeViewportRender);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", scheduleParseTreeViewportRender);
+  }
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && els.appMenu.classList.contains("is-open")) {
