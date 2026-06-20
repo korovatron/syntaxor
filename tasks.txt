@@ -78,3 +78,11 @@ test: -3.14 => ACCEPT
 test: +0.5 => ACCEPT
 test: .75 => REJECT
 test: 12. => REJECT
+===
+
+title: Mini Expression Parser
+description: Build a grammar for arithmetic expressions supporting unsigned integers, addition (+), multiplication (*), parentheses, correct operator precedence (examine the parse tree to check) and left associativity (2+3+4 should be parsed as (2+3)+4 and not 2+(3+4) )
+test: 2+3*4 => ACCEPT
+test: 7*(1+2*3)+9 => ACCEPT
+test: 2**3 => REJECT
+test: (3+)*2 => REJECT

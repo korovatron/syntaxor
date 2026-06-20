@@ -81,17 +81,7 @@
           </div>
         </div>
 
-        <div class="grammar-editor">
-          <pre id="grammarHighlight" class="grammar-highlight" aria-hidden="true"></pre>
-          <textarea
-            id="grammarInput"
-            spellcheck="false"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            placeholder="&lt;digit&gt; ::= &quot;0&quot; | &quot;1&quot; | &quot;2&quot;"
-          ></textarea>
-        </div>
+        <div id="grammarEditor" class="grammar-editor" aria-label="Grammar editor"></div>
         <div id="grammarSnippetMenu" class="grammar-snippet-menu" role="menu" aria-label="Grammar insertion menu" hidden>
           <button class="grammar-snippet-btn" type="button" data-snippet-key="digit" role="menuitem">Insert digits set</button>
           <button class="grammar-snippet-btn" type="button" data-snippet-key="lower" role="menuitem">Insert lowercase set</button>
@@ -213,7 +203,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
         </button>
         <p><strong>Examples</strong><br />Open the top-right menu and expand Examples to load a starter grammar.</p>
-        <p><strong>Grammar Workspace</strong><br />Type rules in BNF. Empty string markers entered as "" are converted to ε automatically.</p>
+        <p><strong>Grammar Workspace</strong><br />Type rules in BNF. Empty string markers entered as "" are converted to ε automatically. You can also span a rule across multiple lines by indenting continuation lines that begin with |.</p>
         <p><strong>Rule snippets</strong><br />Right-click in the Grammar Workspace to open the insert menu, then choose Insert digits set, Insert lowercase set, or Insert uppercase set to place the full expanded BNF rule at the current cursor position.</p>
         <p><strong>Testing</strong><br />Choose a rule with <span class="help-action-chip help-action-chip-row">SELECT TEST RULE</span>, then use <span class="help-action-chip help-action-chip-row">ENTER STRING TO TEST</span> to check if the string is accepted, and optionally display the parse tree.</p>
         <p><strong>Status</strong><br />The Status badge shows whether there are grammar issues (red outline) or no issues (white outline).</p>

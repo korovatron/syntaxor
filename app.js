@@ -1,4 +1,7 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
+import { EditorState, EditorSelection } from "https://esm.sh/@codemirror/state";
+import { EditorView, Decoration, ViewPlugin, keymap } from "https://esm.sh/@codemirror/view";
+import { defaultKeymap, history, historyKeymap } from "https://esm.sh/@codemirror/commands";
 
 const APP_VERSION = "1.0.7";
 const STORAGE_KEY = "syntaxor.workspace.v1";
@@ -36,8 +39,7 @@ const els = {
   startSymbolSelect: document.getElementById("startSymbolSelect"),
   diagramRuleSelect: document.getElementById("diagramRuleSelect"),
   resetGrammarBtn: document.getElementById("resetGrammarBtn"),
-  grammarInput: document.getElementById("grammarInput"),
-  grammarHighlight: document.getElementById("grammarHighlight"),
+  grammarEditor: document.getElementById("grammarEditor"),
   grammarSnippetMenu: document.getElementById("grammarSnippetMenu"),
   testInput: document.getElementById("testInput"),
   parseTreeBtn: document.getElementById("parseTreeBtn"),
@@ -86,6 +88,193 @@ const state = {
   grammarSnippetMenuOpen: false
 };
 
+let grammarEditorView = null;
+let grammarEditorProgrammaticUpdate = false;
+let grammarParseTimer = null;
+
+function getGrammarText() {
+  return grammarEditorView ? grammarEditorView.state.doc.toString() : "";
+}
+
+function setGrammarText(text, selectionAnchor) {
+  if (!grammarEditorView) {
+    return;
+  }
+
+  const nextText = `${text ?? ""}`;
+  const currentText = grammarEditorView.state.doc.toString();
+  const currentHead = grammarEditorView.state.selection.main.head;
+  const anchor = Number.isInteger(selectionAnchor)
+    ? Math.max(0, Math.min(nextText.length, selectionAnchor))
+    : Math.max(0, Math.min(nextText.length, currentHead));
+
+  grammarEditorProgrammaticUpdate = true;
+  grammarEditorView.dispatch({
+    changes: { from: 0, to: currentText.length, insert: nextText },
+    selection: { anchor }
+  });
+  grammarEditorProgrammaticUpdate = false;
+}
+
+function focusGrammarEditor() {
+  grammarEditorView?.focus();
+}
+
+function scheduleGrammarParse() {
+  window.clearTimeout(grammarParseTimer);
+  grammarParseTimer = window.setTimeout(() => {
+    parseAndRender();
+  }, 180);
+}
+
+function buildGrammarDecorations(view) {
+  const ranges = [];
+  const nonTerminalRegex = /<[^<>\n]+?>/g;
+  const quotedRegex = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g;
+  const operatorRegex = /::=|\|/g;
+  const epsilonRegex = /\b(?:epsilon)\b|ε/gi;
+
+  let cursor = 0;
+  for (let lineNo = 1; lineNo <= view.state.doc.lines; lineNo += 1) {
+    const line = view.state.doc.line(lineNo).text;
+    const lineStart = cursor;
+    const lineLength = line.length;
+    const commentMatch = line.match(/\/\/.*|#.*/);
+    const commentStart = commentMatch ? line.indexOf(commentMatch[0]) : -1;
+    const content = commentStart >= 0 ? line.slice(0, commentStart) : line;
+
+    if (commentStart >= 0) {
+      ranges.push(Decoration.mark({ class: "cm-hl-comment" }).range(
+        lineStart + commentStart,
+        lineStart + lineLength
+      ));
+    }
+
+    for (const regex of [quotedRegex, nonTerminalRegex, operatorRegex, epsilonRegex]) {
+      regex.lastIndex = 0;
+      let match;
+      while ((match = regex.exec(content)) !== null) {
+        const token = match[0];
+        const start = lineStart + match.index;
+        const end = start + token.length;
+        let className = "";
+
+        if (regex === quotedRegex) {
+          className = "cm-hl-terminal";
+        } else if (regex === nonTerminalRegex) {
+          className = "cm-hl-nonterminal";
+        } else if (regex === operatorRegex) {
+          className = token === "|" ? "cm-hl-alternative" : "cm-hl-operator";
+        } else {
+          className = "cm-hl-epsilon";
+        }
+
+        ranges.push(Decoration.mark({ class: className }).range(start, end));
+      }
+    }
+
+    cursor += lineLength + 1;
+  }
+
+  return Decoration.set(ranges, true);
+}
+
+const grammarHighlightPlugin = ViewPlugin.fromClass(class {
+  constructor(view) {
+    this.decorations = buildGrammarDecorations(view);
+  }
+
+  update(update) {
+    if (update.docChanged || update.viewportChanged) {
+      this.decorations = buildGrammarDecorations(update.view);
+    }
+  }
+}, {
+  decorations: (instance) => instance.decorations
+});
+
+const grammarEditorTheme = EditorView.theme({
+  ".cm-content .cm-hl-comment": { color: "#8ea0b0" },
+  ".cm-content .cm-hl-nonterminal": { color: "#4fb584", fontWeight: "600" },
+  ".cm-content .cm-hl-terminal": { color: "#d967be" },
+  ".cm-content .cm-hl-operator": { color: "#d4985c", fontWeight: "600" },
+  ".cm-content .cm-hl-alternative": { color: "#d4985c", fontWeight: "600" },
+  ".cm-content .cm-hl-epsilon": { color: "#b8a0e8" }
+});
+
+function insertTabAtCaret(view) {
+  const changes = [];
+  const ranges = [];
+
+  for (const range of view.state.selection.ranges) {
+    changes.push({ from: range.from, to: range.to, insert: "\t" });
+    const caret = range.from + 1;
+    ranges.push(EditorSelection.cursor(caret));
+  }
+
+  view.dispatch({
+    changes,
+    selection: EditorSelection.create(ranges),
+    userEvent: "input"
+  });
+
+  return true;
+}
+
+function normaliseEmptyStringMarkers() {
+  if (!grammarEditorView) {
+    return;
+  }
+
+  const text = getGrammarText();
+  if (!text.includes('""')) {
+    return;
+  }
+
+  const head = grammarEditorView.state.selection.main.head;
+  const beforeHead = text.slice(0, head);
+  const replacementsBeforeHead = (beforeHead.match(/""/g) || []).length;
+  const nextText = text.replace(/""/g, "ε");
+  const nextHead = head + replacementsBeforeHead;
+  setGrammarText(nextText, nextHead);
+}
+
+function initGrammarEditor() {
+  grammarEditorView = new EditorView({
+    state: EditorState.create({
+      doc: "",
+      extensions: [
+        history(),
+        keymap.of([
+          { key: "Tab", run: insertTabAtCaret, shift: insertTabAtCaret },
+          ...defaultKeymap,
+          ...historyKeymap
+        ]),
+        grammarEditorTheme,
+        grammarHighlightPlugin,
+        EditorView.lineWrapping,
+        EditorView.updateListener.of((update) => {
+          if (!update.docChanged || grammarEditorProgrammaticUpdate) {
+            return;
+          }
+
+          normaliseEmptyStringMarkers();
+          hideGrammarSnippetMenu();
+          scheduleGrammarParse();
+        })
+      ]
+    }),
+    parent: els.grammarEditor
+  });
+
+  const scroller = grammarEditorView.scrollDOM;
+  scroller.addEventListener("scroll", hideGrammarSnippetMenu);
+  scroller.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    showGrammarSnippetMenu(event.clientX, event.clientY);
+  });
+}
+
 function buildCharacterRule(ruleName, startChar, endChar) {
   const startCode = startChar.charCodeAt(0);
   const endCode = endChar.charCodeAt(0);
@@ -125,7 +314,7 @@ function setShowAboutOnStartupPreference(enabled) {
 function saveWorkspace() {
   const payload = {
     selectedExample: state.selectedExample,
-    grammarText: els.grammarInput.value,
+    grammarText: getGrammarText(),
     selectedStartSymbol: state.selectedStartSymbol,
     diagramRule: state.diagramRule,
     testInput: els.testInput.value
@@ -150,7 +339,7 @@ function downloadTextFile(content, filename) {
 }
 
 function loadGrammarFromText(grammarText) {
-  els.grammarInput.value = grammarText;
+  setGrammarText(grammarText, 0);
   state.selectedExample = null;
   state.selectedStartSymbol = null;
   state.diagramRule = null;
@@ -158,7 +347,7 @@ function loadGrammarFromText(grammarText) {
 }
 
 async function saveGrammarToFile() {
-  const grammarText = els.grammarInput.value || "";
+  const grammarText = getGrammarText();
   const filename = getGrammarFileName();
 
   if (window.showSaveFilePicker) {
@@ -288,18 +477,6 @@ function highlightGrammarLine(line) {
   return highlighted.replace(/\u0000(\d+)\u0000/g, (_match, index) => placeholders[Number(index)]);
 }
 
-function renderGrammarHighlight() {
-  const source = els.grammarInput.value || "";
-  const lines = source.split("\n");
-  const highlighted = lines.map((line) => highlightGrammarLine(line)).join("\n");
-  els.grammarHighlight.innerHTML = highlighted || " ";
-}
-
-function syncGrammarHighlightScroll() {
-  els.grammarHighlight.scrollTop = els.grammarInput.scrollTop;
-  els.grammarHighlight.scrollLeft = els.grammarInput.scrollLeft;
-}
-
 function hideGrammarSnippetMenu() {
   if (!els.grammarSnippetMenu) {
     return;
@@ -329,27 +506,46 @@ function showGrammarSnippetMenu(clientX, clientY) {
 
 function insertGrammarSnippet(snippetKey) {
   const snippet = GRAMMAR_SNIPPETS[snippetKey];
-  if (!snippet) {
+  if (!snippet || !grammarEditorView) {
     return;
   }
 
-  const start = els.grammarInput.selectionStart ?? els.grammarInput.value.length;
-  const end = els.grammarInput.selectionEnd ?? start;
-  const currentValue = els.grammarInput.value;
+  const selection = grammarEditorView.state.selection.main;
+  const start = selection.from;
+  const end = selection.to;
+  const currentValue = getGrammarText();
   const before = currentValue.slice(0, start);
   const after = currentValue.slice(end);
   const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
   const needsTrailingBreak = after.length > 0 && !after.startsWith("\n");
   const insertedSnippet = `${needsLeadingBreak ? "\n" : ""}${snippet}${needsTrailingBreak ? "\n" : ""}`;
-  const nextValue = `${before}${insertedSnippet}${after}`;
-  const nextCaret = before.length + insertedSnippet.length;
+  const nextCaret = start + insertedSnippet.length;
 
-  els.grammarInput.value = nextValue;
-  els.grammarInput.focus();
-  els.grammarInput.selectionStart = nextCaret;
-  els.grammarInput.selectionEnd = nextCaret;
+  grammarEditorView.dispatch({
+    changes: { from: start, to: end, insert: insertedSnippet },
+    selection: { anchor: nextCaret }
+  });
+
+  focusGrammarEditor();
   hideGrammarSnippetMenu();
-  els.grammarInput.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function insertTextAtGrammarSelection(text) {
+  if (!grammarEditorView) {
+    return;
+  }
+
+  const selection = grammarEditorView.state.selection.main;
+  const start = selection.from;
+  const end = selection.to;
+  const nextCaret = start + text.length;
+
+  grammarEditorView.dispatch({
+    changes: { from: start, to: end, insert: text },
+    selection: { anchor: nextCaret }
+  });
+
+  focusGrammarEditor();
 }
 
 function renderWarnings(messages) {
@@ -949,7 +1145,7 @@ function applyExample(exampleKey) {
   state.selectedExample = exampleKey;
   state.selectedStartSymbol = null;
   state.diagramRule = null;
-  els.grammarInput.value = example.grammar;
+  setGrammarText(example.grammar, 0);
   parseAndRender();
 }
 
@@ -959,12 +1155,11 @@ function clearWorkspace() {
   state.parsed = null;
   state.parseError = null;
 
-  els.grammarInput.value = "";
+  setGrammarText("", 0);
   els.testInput.value = "";
   els.testInput.classList.remove("test-pass", "test-fail");
   setParseTreeEnabled(false);
 
-  renderGrammarHighlight();
   setStartSymbolOptions(null);
   setDiagramRuleOptions(null);
   renderWarnings([]);
@@ -997,9 +1192,8 @@ function collapseMenuConcertinas() {
 }
 
 function parseAndRender() {
-  const grammarText = els.grammarInput.value;
+  const grammarText = getGrammarText();
   state.grammarText = grammarText;
-  renderGrammarHighlight();
 
   try {
     state.parsed = parseGrammar(grammarText);
@@ -1055,7 +1249,6 @@ function populateExamples() {
 }
 
 function attachEvents() {
-  let parseTimer = null;
   let parseTreeViewportTimer = null;
 
   const isTextEntryTarget = (target) => {
@@ -1065,38 +1258,6 @@ function attachEvents() {
 
     return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
   };
-
-  els.grammarInput.addEventListener("input", () => {
-    // Auto-replace "" with ε
-    const cursorPos = els.grammarInput.selectionStart;
-    const text = els.grammarInput.value;
-    const hasEmptyString = text.includes("\"\"");
-    
-    if (hasEmptyString) {
-      const newText = text.replace(/""/g, "ε");
-      const beforeCursor = text.substring(0, cursorPos);
-      const emptyStringsBeforeCursor = (beforeCursor.match(/""/g) || []).length;
-      const newCursorPos = cursorPos + emptyStringsBeforeCursor;
-      
-      els.grammarInput.value = newText;
-      els.grammarInput.selectionStart = newCursorPos;
-      els.grammarInput.selectionEnd = newCursorPos;
-    }
-    
-    renderGrammarHighlight();
-    syncGrammarHighlightScroll();
-    window.clearTimeout(parseTimer);
-    parseTimer = window.setTimeout(() => {
-      parseAndRender();
-    }, 180);
-  });
-
-  els.grammarInput.addEventListener("scroll", syncGrammarHighlightScroll);
-  els.grammarInput.addEventListener("scroll", hideGrammarSnippetMenu);
-  els.grammarInput.addEventListener("contextmenu", (event) => {
-    event.preventDefault();
-    showGrammarSnippetMenu(event.clientX, event.clientY);
-  });
 
   els.grammarSnippetMenu.addEventListener("click", (event) => {
     const target = event.target.closest(".grammar-snippet-btn");
@@ -1297,6 +1458,7 @@ function init() {
   }
 
   populateExamples();
+  initGrammarEditor();
   const restoredFromStorage = loadWorkspace();
   if (!restoredFromStorage) {
     state.selectedExample = DEFAULT_EXAMPLE_KEY;
@@ -1306,9 +1468,7 @@ function init() {
     els.testInput.value = DEFAULT_FIRST_RUN_TEST_INPUT;
   }
   populateExamples();
-  els.grammarInput.value = state.grammarText;
-  renderGrammarHighlight();
-  syncGrammarHighlightScroll();
+  setGrammarText(state.grammarText, 0);
   parseAndRender();
   attachEvents();
   loadTasksCatalog().then(() => {

@@ -93,6 +93,23 @@ Build a grammar for signed decimal numbers: optional + or -, digits, and optiona
 
 ====================================================================
 
+Task 11: Mini Expression Parser
+Build a grammar for arithmetic expressions supporting unsigned integers, addition (+), multiplication (*), parentheses, correct operator precedence (examine the parse tree to check) and left associativity (2+3+4 should be parsed as (2+3)+4 and not 2+(3+4) )
+
+<number> ::= <opt-sign> <unsigned> <opt-frac>
+<opt-sign> ::= ε
+             | "+"
+             | "-"
+<opt-frac> ::= ε
+             | "." <unsigned>
+<unsigned> ::= <digit> 
+             | <digit> <unsigned>
+<digit> ::= "0" | "1" | "2" | "3" | "4"
+          | "5" | "6" | "7" | "8" | "9"
+
+
+====================================================================
+
 
 
 

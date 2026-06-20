@@ -199,6 +199,43 @@ export function parseGrammar(sourceText) {
   const terminals = new Set();
   const referenced = new Set();
   const warnings = [];
+  const pendingRules = [];
+
+  const flushPendingRule = (pendingRule) => {
+    if (!pendingRule) {
+      return;
+    }
+
+    if (!rules.has(pendingRule.name)) {
+      rules.set(pendingRule.name, []);
+      ruleOrder.push(pendingRule.name);
+    }
+
+    for (const fragment of pendingRule.fragments) {
+      const rhs = fragment.text;
+      const alternatives = splitAlternatives(rhs).map((part) => {
+        if (!part) {
+          return [];
+        }
+
+        const parsedTerms = parseSequence(part, fragment.lineNumber);
+        const sequence = parsedTerms.filter((term) => term.type !== "epsilon");
+
+        for (const term of parsedTerms) {
+          if (term.type === "terminal" && term.value) {
+            terminals.add(term.value);
+          }
+          if (term.type === "nonterminal") {
+            referenced.add(term.value);
+          }
+        }
+
+        return sequence;
+      });
+
+      rules.get(pendingRule.name).push(...alternatives);
+    }
+  };
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const rawLine = lines[lineIndex];
@@ -209,40 +246,32 @@ export function parseGrammar(sourceText) {
       continue;
     }
 
+    const continuationMatch = rawLine.match(/^\s*\|\s*(.*)$/);
+    if (continuationMatch) {
+      if (pendingRules.length === 0) {
+        throw new Error(`Line ${lineNumber}: expected <rule> ::= production.`);
+      }
+
+      pendingRules[pendingRules.length - 1].fragments.push({
+        text: continuationMatch[1] || "",
+        lineNumber
+      });
+      continue;
+    }
+
     const match = trimmedLine.match(/^<([^<>]+)>\s*::=\s*(.*)$/);
     if (!match) {
       throw new Error(`Line ${lineNumber}: expected <rule> ::= production.`);
     }
 
-    const name = match[1].trim();
-    const rhs = match[2] || "";
-
-    if (!rules.has(name)) {
-      rules.set(name, []);
-      ruleOrder.push(name);
-    }
-
-    const alternatives = splitAlternatives(rhs).map((part) => {
-      if (!part) {
-        return [];
-      }
-
-      const parsedTerms = parseSequence(part, lineNumber);
-      const sequence = parsedTerms.filter((term) => term.type !== "epsilon");
-
-      for (const term of parsedTerms) {
-        if (term.type === "terminal" && term.value) {
-          terminals.add(term.value);
-        }
-        if (term.type === "nonterminal") {
-          referenced.add(term.value);
-        }
-      }
-
-      return sequence;
+    pendingRules.push({
+      name: match[1].trim(),
+      fragments: [{ text: match[2] || "", lineNumber }]
     });
+  }
 
-    rules.get(name).push(...alternatives);
+  for (const pendingRule of pendingRules) {
+    flushPendingRule(pendingRule);
   }
 
   if (ruleOrder.length === 0) {
