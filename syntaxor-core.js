@@ -24,18 +24,39 @@ export const EXAMPLES = {
     title: "Identifier",
     grammar: [
       '<identifier> ::= <letter> <identifier-tail>',
-      '<identifier-tail> ::= <letter> <identifier-tail> | <digit> <identifier-tail> | "_" <identifier-tail> | ""',
-      '<letter> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"',
-      '<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"'
+      '',
+      '<identifier-tail> ::= <letter> <identifier-tail>',
+      '                    | <digit> <identifier-tail>',
+      '                    | "_" <identifier-tail>',
+      '                    | ε',
+      '',
+      '<letter> ::= "a" | "b" | "c" | "d" | "e"',
+      '           | "f" | "g" | "h" | "i" | "j"',
+      '           | "k" | "l" | "m" | "n" | "o"',
+      '           | "p" | "q" | "r" | "s" | "t"',
+      '           | "u" | "v" | "w" | "x" | "y"',
+      '           | "z"',
+      '',
+      '<digit> ::= "0" | "1" | "2" | "3" | "4"',
+      '          | "5" | "6" | "7" | "8" | "9"'
     ].join("\n")
   },
   sentence: {
     title: "Tiny sentence",
     grammar: [
       '<sentence> ::= <subject> " " <verb> " " <object>',
-      '<subject> ::= "the cat" | "the robot" | "a student"',
-      '<verb> ::= "writes" | "tests" | "builds"',
-      '<object> ::= "rules" | "a parser" | "a diagram"'
+      '',
+      '<subject> ::= "the cat"',
+      '            | "the robot"',
+      '            | "a student"',
+      '',
+      '<verb> ::= "writes"',
+      '         | "tests"',
+      '         | "builds"',
+      '',
+      '<object> ::= "rules"',
+      '           | "a parser"',
+      '           | "a diagram"'
     ].join("\n")
   }
 };
