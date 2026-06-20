@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.15";
+const APP_VERSION = "1.0.16";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
