@@ -1,10 +1,11 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "0.1.8";
+const APP_VERSION = "1.0.0";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
 const DEFAULT_FIRST_RUN_TEST_INPUT = "1+2*3";
+const TASKS_SOURCE_URL = "./tasks.txt";
 const IS_IOS_BROWSER = (() => {
   if (typeof navigator === "undefined") {
     return false;
@@ -21,6 +22,7 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
+  menuTasks: document.getElementById("menuTasks"),
   menuHelp: document.getElementById("menuHelp"),
   menuAbout: document.getElementById("menuAbout"),
   btnFooterHelp: document.getElementById("btnFooterHelp"),
@@ -33,6 +35,13 @@ const els = {
   parseTreeBtn: document.getElementById("parseTreeBtn"),
   parseTreeModal: document.getElementById("parseTreeModal"),
   parseTreeCloseBtn: document.getElementById("parseTreeCloseBtn"),
+  tasksModal: document.getElementById("tasksModal"),
+  tasksModalList: document.getElementById("tasksModalList"),
+  tasksModalStatus: document.getElementById("tasksModalStatus"),
+  tasksModalPosition: document.getElementById("tasksModalPosition"),
+  btnTasksModalPrev: document.getElementById("btnTasksModalPrev"),
+  btnTasksModalNext: document.getElementById("btnTasksModalNext"),
+  btnTasksModalCloseX: document.getElementById("btnTasksModalCloseX"),
   helpModal: document.getElementById("helpModal"),
   aboutModal: document.getElementById("aboutModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
@@ -57,6 +66,12 @@ const state = {
   parseError: null,
   modalOpenedAt: 0,
   parseTreeModalOverlay: null,
+  tasksModalOverlay: null,
+  tasksCatalog: [],
+  tasksCatalogLoaded: false,
+  tasksCatalogLoading: false,
+  tasksCatalogError: "",
+  currentTaskIndex: 0,
   aboutModalOverlay: null,
   helpModalOverlay: null
 };
@@ -519,6 +534,258 @@ function closeHelpModal() {
   document.body.style.overflow = "";
 }
 
+function parseTaskTestCase(rawValue) {
+  const input = String(rawValue || "");
+  const arrowParts = input.split("=>");
+  const pipeParts = input.split("|");
+  const pieces = arrowParts.length >= 2 ? arrowParts : pipeParts;
+
+  if (pieces.length < 2) {
+    return null;
+  }
+
+  const testInput = pieces[0].trim();
+  const expectedRaw = pieces.slice(1).join("=>").trim();
+  if (!testInput || !expectedRaw) {
+    return null;
+  }
+
+  const expectedLower = expectedRaw.toLowerCase();
+  const isAccept = ["accept", "accepted", "pass", "valid", "yes", "true", "1"].includes(expectedLower);
+  const isReject = ["reject", "rejected", "fail", "invalid", "no", "false", "0"].includes(expectedLower);
+  const expected = isAccept ? "ACCEPT" : isReject ? "REJECT" : expectedRaw.toUpperCase();
+
+  return {
+    input: testInput,
+    expected,
+    type: expected === "ACCEPT" ? "accept" : expected === "REJECT" ? "reject" : "other"
+  };
+}
+
+function parseTasksText(sourceText) {
+  const blocks = String(sourceText || "")
+    .split(/^===\s*$/m)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks.map((block, index) => {
+    const task = {
+      id: `task-${index + 1}`,
+      title: `Task ${index + 1}`,
+      grade: "",
+      description: "",
+      tests: []
+    };
+
+    block.split(/\r?\n/).forEach((line) => {
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex === -1) {
+        return;
+      }
+
+      const key = line.slice(0, separatorIndex).trim().toLowerCase();
+      const value = line.slice(separatorIndex + 1).trim();
+      if (key === "title") task.title = value || task.title;
+      if (key === "grade" || key === "level") task.grade = value;
+      if (key === "description") task.description = value;
+      if (key === "test") {
+        const parsedTest = parseTaskTestCase(value);
+        if (parsedTest) {
+          task.tests.push(parsedTest);
+        }
+      }
+    });
+
+    return task;
+  });
+}
+
+async function loadTasksCatalog() {
+  if (state.tasksCatalogLoaded || state.tasksCatalogLoading) {
+    return;
+  }
+
+  state.tasksCatalogLoading = true;
+  state.tasksCatalogError = "";
+
+  try {
+    const response = await fetch(TASKS_SOURCE_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Tasks file returned ${response.status}.`);
+    }
+
+    const text = await response.text();
+    state.tasksCatalog = parseTasksText(text);
+    state.tasksCatalogLoaded = true;
+  } catch (error) {
+    state.tasksCatalog = [];
+    state.tasksCatalogError = error instanceof Error ? error.message : "Unable to load tasks.";
+  } finally {
+    state.tasksCatalogLoading = false;
+  }
+}
+
+function renderTasksModal() {
+  if (!els.tasksModalList || !els.tasksModalStatus || !els.tasksModalPosition || !els.btnTasksModalPrev || !els.btnTasksModalNext) {
+    return;
+  }
+
+  els.tasksModalList.replaceChildren();
+  els.tasksModalPosition.textContent = "";
+  els.btnTasksModalPrev.disabled = true;
+  els.btnTasksModalNext.disabled = true;
+
+  if (state.tasksCatalogLoading) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = "Loading tasks...";
+    return;
+  }
+
+  if (state.tasksCatalogError) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = `Could not load tasks: ${state.tasksCatalogError}`;
+    return;
+  }
+
+  if (state.tasksCatalog.length === 0) {
+    els.tasksModalStatus.hidden = false;
+    els.tasksModalStatus.textContent = "No tasks found.";
+    return;
+  }
+
+  els.tasksModalStatus.hidden = true;
+  state.currentTaskIndex = Math.max(0, Math.min(state.currentTaskIndex, state.tasksCatalog.length - 1));
+
+  const task = state.tasksCatalog[state.currentTaskIndex];
+  const index = state.currentTaskIndex;
+
+  els.tasksModalPosition.textContent = `${index + 1} / ${state.tasksCatalog.length}`;
+  els.btnTasksModalPrev.disabled = index === 0;
+  els.btnTasksModalNext.disabled = index >= state.tasksCatalog.length - 1;
+
+  const article = document.createElement("article");
+  article.className = "task-card";
+
+  const title = document.createElement("h4");
+  title.className = "task-card-title";
+  title.textContent = `Task ${index + 1}: ${task.title}`;
+  article.appendChild(title);
+
+  if (task.grade) {
+    const grade = document.createElement("p");
+    grade.className = "task-card-grade";
+    grade.textContent = `Grade: ${task.grade}`;
+    article.appendChild(grade);
+  }
+
+  if (task.description) {
+    const description = document.createElement("p");
+    description.className = "task-card-description";
+    description.textContent = task.description;
+    article.appendChild(description);
+  }
+
+  const testsSection = document.createElement("section");
+  testsSection.className = "task-card-tests";
+  const testsLabel = document.createElement("p");
+  testsLabel.className = "task-card-tests-label";
+  testsLabel.textContent = "Test strings";
+  testsSection.appendChild(testsLabel);
+
+  if (task.tests.length === 0) {
+    const noTests = document.createElement("p");
+    noTests.className = "task-card-outcome other";
+    noTests.textContent = "No tests provided.";
+    testsSection.appendChild(noTests);
+  } else {
+    const list = document.createElement("ul");
+    list.className = "task-tests-list";
+
+    task.tests.forEach((testCase) => {
+      const item = document.createElement("li");
+      item.className = "task-test-item";
+
+      const input = document.createElement("span");
+      input.className = "task-test-input";
+      input.textContent = `"${testCase.input}"`;
+
+      const expected = document.createElement("span");
+      expected.className = `task-test-expected ${testCase.type}`;
+      expected.textContent = testCase.expected;
+
+      item.appendChild(input);
+      item.appendChild(expected);
+      list.appendChild(item);
+    });
+
+    testsSection.appendChild(list);
+  }
+
+  article.appendChild(testsSection);
+  els.tasksModalList.appendChild(article);
+}
+
+function showTaskAtIndex(nextIndex) {
+  if (state.tasksCatalog.length === 0) {
+    return;
+  }
+
+  state.currentTaskIndex = Math.max(0, Math.min(nextIndex, state.tasksCatalog.length - 1));
+  renderTasksModal();
+}
+
+async function openTasksModal() {
+  if (state.tasksModalOverlay) {
+    return;
+  }
+
+  state.modalOpenedAt = performance.now();
+  renderTasksModal();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.tasksModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeTasksModal();
+    }
+  });
+  document.body.appendChild(overlay);
+  state.tasksModalOverlay = overlay;
+  document.body.style.overflow = "hidden";
+  toggleMenu(false);
+  window.requestAnimationFrame(() => {
+    if (els.btnTasksModalCloseX) {
+      els.btnTasksModalCloseX.focus();
+    }
+  });
+
+  if (!state.tasksCatalogLoaded && !state.tasksCatalogLoading) {
+    renderTasksModal();
+    await loadTasksCatalog();
+    renderTasksModal();
+  }
+}
+
+function closeTasksModal() {
+  if (!state.tasksModalOverlay) {
+    return;
+  }
+
+  const content = state.tasksModalOverlay.firstElementChild;
+  if (content) {
+    els.tasksModal.appendChild(content);
+  }
+  state.tasksModalOverlay.remove();
+  state.tasksModalOverlay = null;
+  document.body.style.overflow = "";
+}
+
 function applyExample(exampleKey) {
   const example = EXAMPLES[exampleKey];
   if (!example) {
@@ -620,6 +887,14 @@ function populateExamples() {
 function attachEvents() {
   let parseTimer = null;
 
+  const isTextEntryTarget = (target) => {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+  };
+
   els.grammarInput.addEventListener("input", () => {
     // Auto-replace "" with ε
     const cursorPos = els.grammarInput.selectionStart;
@@ -674,6 +949,13 @@ function attachEvents() {
 
   els.btnHamburger.addEventListener("click", () => toggleMenu());
   els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
+  els.menuTasks.addEventListener("click", () => {
+    if (state.tasksModalOverlay) {
+      closeTasksModal();
+      return;
+    }
+    openTasksModal();
+  });
   els.menuHelp.addEventListener("click", openHelpModal);
   els.menuAbout.addEventListener("click", openAboutModal);
   els.btnFooterHelp.addEventListener("click", openHelpModal);
@@ -692,6 +974,9 @@ function attachEvents() {
 
   els.parseTreeBtn.addEventListener("click", openParseTreeModal);
   els.parseTreeCloseBtn.addEventListener("click", closeParseTreeModal);
+  els.btnTasksModalCloseX.addEventListener("click", closeTasksModal);
+  els.btnTasksModalPrev.addEventListener("click", () => showTaskAtIndex(state.currentTaskIndex - 1));
+  els.btnTasksModalNext.addEventListener("click", () => showTaskAtIndex(state.currentTaskIndex + 1));
   els.btnHelpCloseX.addEventListener("click", closeHelpModal);
   els.btnAboutCloseX.addEventListener("click", closeAboutModal);
   els.aboutShowOnStartup.addEventListener("change", () => {
@@ -714,9 +999,33 @@ function attachEvents() {
       return;
     }
 
+    if (event.key === "Escape" && state.tasksModalOverlay) {
+      closeTasksModal();
+      return;
+    }
+
     if (event.key === "Escape" && state.parseTreeModalOverlay) {
       closeParseTreeModal();
     }
+
+    const isTasksShortcut = event.shiftKey
+      && !event.ctrlKey
+      && !event.altKey
+      && !event.metaKey
+      && !event.repeat
+      && event.key.toLowerCase() === "t";
+
+    if (!isTasksShortcut || isTextEntryTarget(event.target)) {
+      return;
+    }
+
+    event.preventDefault();
+    if (state.tasksModalOverlay) {
+      closeTasksModal();
+      return;
+    }
+
+    openTasksModal();
   });
 
   document.addEventListener("click", (event) => {
@@ -780,6 +1089,11 @@ function init() {
   syncGrammarHighlightScroll();
   parseAndRender();
   attachEvents();
+  loadTasksCatalog().then(() => {
+    if (state.tasksModalOverlay) {
+      renderTasksModal();
+    }
+  });
 
   if (showAboutOnStartup) {
     openAboutModal({ focusClose: false });

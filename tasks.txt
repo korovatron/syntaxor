@@ -1,0 +1,80 @@
+===
+title: Single Digit Binary
+description: Build a grammar that accepts exactly one binary digit, either 0 or 1.
+test: 0 => ACCEPT
+test: 1 => ACCEPT
+test: 10 => REJECT
+test: a => REJECT
+===
+
+title: Binary Strings (Non-empty)
+description: Build a grammar that accepts any non-empty binary string.
+test: 1 => ACCEPT
+test: 01011 => ACCEPT
+test: "" => REJECT
+test: 012 => REJECT
+===
+
+title: Even Number of a Characters
+description: Build a grammar over {a,b} where the count of a is even.
+test: bb => ACCEPT
+test: aabb => ACCEPT
+test: aba => ACCEPT
+test: ab => REJECT
+===
+
+title: Identifier Names
+description: Build a grammar for identifiers that start with a letter, followed by letters or digits.
+test: x => ACCEPT
+test: var2 => ACCEPT
+test: 2var => REJECT
+test: var_2 => REJECT
+===
+
+title: Unsigned Integer
+description: Build a grammar for unsigned base-10 integers with no sign.
+test: 0 => ACCEPT
+test: 5042 => ACCEPT
+test: -12 => REJECT
+test: 12.5 => REJECT
+===
+
+title: Simple Arithmetic (Plus Only)
+description: Build a grammar that accepts numbers joined by +, for example 1+2+3, with no spaces.
+test: 7 => ACCEPT
+test: 1+2+3 => ACCEPT
+test: +1 => REJECT
+test: 1++2 => REJECT
+===
+
+title: Matched Parentheses
+description: Build a grammar that accepts correctly balanced parentheses using only ( and ).
+test: () => ACCEPT
+test: (()()) => ACCEPT
+test: (() => REJECT
+test: )( => REJECT
+===
+
+title: Comma-Separated Integer List
+description: Build a grammar for one or more integers separated by commas, with no trailing comma.
+test: 3 => ACCEPT
+test: 1,2,30 => ACCEPT
+test: 1, => REJECT
+test: ,1,2 => REJECT
+===
+
+title: Binary Multiples of 2
+description: Build a grammar for binary integers that are multiples of 2 (so the last bit must be 0).
+test: 10 => ACCEPT
+test: 1010 => ACCEPT
+test: 111 => REJECT
+test: 0 => ACCEPT
+===
+
+title: Signed Decimal Number
+description: Build a grammar for signed decimal numbers: optional + or -, digits, and optional fractional part.
+test: 42 => ACCEPT
+test: -3.14 => ACCEPT
+test: +0.5 => ACCEPT
+test: .75 => REJECT
+test: 12. => REJECT
