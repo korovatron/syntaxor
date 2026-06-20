@@ -4,7 +4,7 @@ const APP_VERSION = "1.0.0";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
-const DEFAULT_FIRST_RUN_TEST_INPUT = "1+2*3";
+const DEFAULT_FIRST_RUN_TEST_INPUT = "8*4+21";
 const TASKS_SOURCE_URL = "./tasks.txt";
 const IS_IOS_BROWSER = (() => {
   if (typeof navigator === "undefined") {
@@ -1080,7 +1080,7 @@ function init() {
     state.selectedExample = DEFAULT_EXAMPLE_KEY;
     state.grammarText = EXAMPLES[DEFAULT_EXAMPLE_KEY].grammar;
     state.selectedStartSymbol = "expression";
-    state.diagramRule = "number-tail";
+    state.diagramRule = "expression";
     els.testInput.value = DEFAULT_FIRST_RUN_TEST_INPUT;
   }
   populateExamples();

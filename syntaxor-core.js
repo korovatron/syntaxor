@@ -4,13 +4,10 @@ export const EXAMPLES = {
   arithmetic: {
     title: "Arithmetic expression",
     grammar: [
-      '<expression> ::= <term> <expression-tail>',
-      '<expression-tail> ::= "+" <term> <expression-tail> | "-" <term> <expression-tail> | ""',
-      '<term> ::= <factor> <term-tail>',
-      '<term-tail> ::= "*" <factor> <term-tail> | "/" <factor> <term-tail> | ""',
-      '<factor> ::= <number> | "(" <expression> ")"',
-      '<number> ::= <digit> <number-tail>',
-      '<number-tail> ::= <digit> <number-tail> | ""',
+      '<expression> ::= <factor> | <factor> "*" <factor> | <factor> "/" <factor>',
+      '<factor> ::= <term> | <term> "+" <term> | <term> "-" <term>',
+      '<term> ::= "-" <expression> | <number>',
+      '<number> ::= <digit> | <digit> <number>',
       '<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"'
     ].join("\n")
   },
