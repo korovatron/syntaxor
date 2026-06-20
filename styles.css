@@ -628,6 +628,23 @@ textarea {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.grammar-snippet-hint {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 5;
+  pointer-events: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(12, 10, 30, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  backdrop-filter: blur(1px);
+}
+
 .grammar-snippet-menu {
   position: fixed;
   display: grid;

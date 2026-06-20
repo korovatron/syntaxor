@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.19";
+const APP_VERSION = "1.0.20";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -271,6 +271,11 @@ function initGrammarEditor() {
   const scroller = grammarEditorView.scrollDOM;
   scroller.addEventListener("scroll", hideGrammarSnippetMenu);
   scroller.addEventListener("contextmenu", (event) => {
+    if (!event.shiftKey) {
+      hideGrammarSnippetMenu();
+      return;
+    }
+
     event.preventDefault();
     showGrammarSnippetMenu(event.clientX, event.clientY);
   });
@@ -544,24 +549,6 @@ function insertGrammarSnippet(snippetKey) {
 
   focusGrammarEditor();
   hideGrammarSnippetMenu();
-}
-
-function insertTextAtGrammarSelection(text) {
-  if (!grammarEditorView) {
-    return;
-  }
-
-  const selection = grammarEditorView.state.selection.main;
-  const start = selection.from;
-  const end = selection.to;
-  const nextCaret = start + text.length;
-
-  grammarEditorView.dispatch({
-    changes: { from: start, to: end, insert: text },
-    selection: { anchor: nextCaret }
-  });
-
-  focusGrammarEditor();
 }
 
 function renderWarnings(messages) {
