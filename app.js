@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -200,6 +200,25 @@ function insertTabAtCaret(view) {
   return true;
 }
 
+function insertNewlineAtCaret(view) {
+  const changes = [];
+  const ranges = [];
+
+  for (const range of view.state.selection.ranges) {
+    changes.push({ from: range.from, to: range.to, insert: "\n" });
+    const caret = range.from + 1;
+    ranges.push(EditorSelection.cursor(caret));
+  }
+
+  view.dispatch({
+    changes,
+    selection: EditorSelection.create(ranges),
+    userEvent: "input"
+  });
+
+  return true;
+}
+
 function normaliseEmptyStringMarkers() {
   if (!grammarEditorView) {
     return;
@@ -225,6 +244,7 @@ function initGrammarEditor() {
       extensions: [
         history(),
         keymap.of([
+          { key: "Enter", run: insertNewlineAtCaret, shift: insertNewlineAtCaret },
           { key: "Tab", run: insertTabAtCaret, shift: insertTabAtCaret },
           ...defaultKeymap,
           ...historyKeymap
