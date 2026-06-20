@@ -4,11 +4,11 @@ export const EXAMPLES = {
   arithmetic: {
     title: "Arithmetic expression",
     grammar: [
-      '<expression> ::= | <factor>',
+      '<expression> ::= <factor>',
       '                 | <factor> "*" <factor>',
       '                 | <factor> "/" <factor>',
       '',
-      '<factor> ::= | <term>',
+      '<factor> ::= <term>',
       '             | <term> "+" <term>',
       '             | <term> "-" <term>',
       '',
@@ -16,7 +16,7 @@ export const EXAMPLES = {
       '',
       '<number> ::= <digit> | <digit> <number>',
       '',
-      '<digit> ::= | "0" | "1" | "2" | "3" | "4"',
+      '<digit> ::= "0" | "1" | "2" | "3" | "4"',
       '            | "5" | "6" | "7" | "8" | "9"'
     ].join("\n")
   },
