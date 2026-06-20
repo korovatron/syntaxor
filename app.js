@@ -283,7 +283,22 @@ function buildCharacterRule(ruleName, startChar, endChar) {
     symbols.push(`"${String.fromCharCode(code)}"`);
   }
 
-  return `<${ruleName}> ::= ${symbols.join(" | ")}`;
+  const alternativesPerLine = 5;
+  const lines = [];
+
+  for (let index = 0; index < symbols.length; index += alternativesPerLine) {
+    lines.push(symbols.slice(index, index + alternativesPerLine).join(" | "));
+  }
+
+  if (lines.length === 0) {
+    return `<${ruleName}> ::= `;
+  }
+
+  const continuationIndent = " ".repeat(ruleName.length + 5);
+  const [firstLine, ...otherLines] = lines;
+  const wrappedLines = otherLines.map((line) => `${continuationIndent}| ${line}`);
+
+  return [`<${ruleName}> ::= ${firstLine}`, ...wrappedLines].join("\n");
 }
 
 function setParseTreeEnabled(enabled) {
