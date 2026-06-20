@@ -52,6 +52,8 @@
         </button>
       </div>
       <div class="menu-inner">
+        <button class="menu-item-btn" id="menuOpenFile" type="button">Open file</button>
+        <button class="menu-item-btn" id="menuSaveFile" type="button">Save to file</button>
         <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
           Examples <span class="concertina-arrow">▸</span>
         </button>
@@ -220,6 +222,8 @@
       </div>
     </div>
   </div>
+
+  <input id="fileOpenInput" type="file" accept=".bnf,.txt,text/plain" hidden />
 
   <script type="module" src="app.js"></script>
   <!-- Cloudflare Web Analytics -->

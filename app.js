@@ -1,6 +1,6 @@
 import { EXAMPLES, buildParseTree, parseGrammar, renderDiagramSvg, testString } from "./syntaxor-core.js";
 
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.0.7";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -25,6 +25,8 @@ const els = {
   btnHamburger: document.getElementById("btnHamburger"),
   btnMenuClose: document.getElementById("btnMenuClose"),
   appMenu: document.getElementById("appMenu"),
+  menuOpenFile: document.getElementById("menuOpenFile"),
+  menuSaveFile: document.getElementById("menuSaveFile"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
   menuTasks: document.getElementById("menuTasks"),
@@ -60,7 +62,8 @@ const els = {
   warningsValue: document.getElementById("warningsValue"),
   diagramRuleTitle: document.getElementById("diagramRuleTitle"),
   diagram: document.getElementById("diagram"),
-  diagramEmptyState: document.getElementById("diagramEmptyState")
+  diagramEmptyState: document.getElementById("diagramEmptyState"),
+  fileOpenInput: document.getElementById("fileOpenInput")
 };
 
 const state = {
@@ -128,6 +131,86 @@ function saveWorkspace() {
     testInput: els.testInput.value
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function getGrammarFileName() {
+  return `syntaxor-grammar-${new Date().toISOString().slice(0, 10)}.bnf`;
+}
+
+function downloadTextFile(content, filename) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function loadGrammarFromText(grammarText) {
+  els.grammarInput.value = grammarText;
+  state.selectedExample = null;
+  state.selectedStartSymbol = null;
+  state.diagramRule = null;
+  parseAndRender();
+}
+
+async function saveGrammarToFile() {
+  const grammarText = els.grammarInput.value || "";
+  const filename = getGrammarFileName();
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "Syntaxor grammar", accept: { "text/plain": [".bnf", ".txt"] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(new Blob([grammarText], { type: "text/plain;charset=utf-8" }));
+      await writable.close();
+      return;
+    } catch (_error) {
+      // Fall back to a download when the picker is unavailable or cancelled.
+    }
+  }
+
+  downloadTextFile(grammarText, filename);
+}
+
+async function openGrammarFromFilePicker() {
+  try {
+    if (window.showOpenFilePicker) {
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [{ description: "Syntaxor grammar", accept: { "text/plain": [".bnf", ".txt"] } }]
+      });
+      const file = await handle.getFile();
+      loadGrammarFromText(await file.text());
+      return;
+    }
+
+    if (els.fileOpenInput) {
+      els.fileOpenInput.value = "";
+      els.fileOpenInput.click();
+    }
+  } catch (_error) {
+    // User cancelled or the picker failed.
+  }
+}
+
+async function handleGrammarFileOpenChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    return;
+  }
+
+  try {
+    loadGrammarFromText(await file.text());
+  } finally {
+    event.target.value = "";
+  }
 }
 
 function loadWorkspace() {
@@ -892,9 +975,25 @@ function clearWorkspace() {
 
 function toggleMenu(open) {
   const isOpen = open !== undefined ? open : !els.appMenu.classList.contains("is-open");
+  if (isOpen) {
+    collapseMenuConcertinas();
+  }
   els.appMenu.classList.toggle("is-open", isOpen);
   els.btnHamburger.setAttribute("aria-expanded", String(isOpen));
   els.btnHamburger.classList.toggle("is-open", isOpen);
+}
+
+function collapseMenuConcertinas() {
+  if (!els.menuExamplesToggle || !els.menuExamplesList) {
+    return;
+  }
+
+  els.menuExamplesToggle.setAttribute("aria-expanded", "false");
+  els.menuExamplesList.hidden = true;
+  const arrow = els.menuExamplesToggle.querySelector(".concertina-arrow");
+  if (arrow) {
+    arrow.textContent = "▸";
+  }
 }
 
 function parseAndRender() {
@@ -1033,6 +1132,16 @@ function attachEvents() {
     toggleMenu(false);
   });
 
+  els.menuOpenFile?.addEventListener("click", () => {
+    openGrammarFromFilePicker();
+    toggleMenu(false);
+  });
+
+  els.menuSaveFile?.addEventListener("click", () => {
+    saveGrammarToFile();
+    toggleMenu(false);
+  });
+
   els.btnHamburger.addEventListener("click", () => toggleMenu());
   els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
   els.menuTasks.addEventListener("click", () => {
@@ -1068,6 +1177,8 @@ function attachEvents() {
   els.aboutShowOnStartup.addEventListener("change", () => {
     setShowAboutOnStartupPreference(els.aboutShowOnStartup.checked);
   });
+
+  els.fileOpenInput?.addEventListener("change", handleGrammarFileOpenChange);
 
   const scheduleParseTreeViewportRender = () => {
     if (!state.parseTreeModalOverlay) {
