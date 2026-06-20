@@ -573,10 +573,36 @@ textarea {
   caret-color: var(--ink);
   resize: none;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 216, 107, 0.78) rgba(255, 255, 255, 0.08);
 }
 
 .grammar-editor textarea:focus-visible {
   outline: none;
+}
+
+.grammar-editor textarea::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.grammar-editor textarea::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.grammar-editor textarea::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(255, 216, 107, 0.9), rgba(255, 143, 107, 0.9));
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+.grammar-editor textarea::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(255, 243, 166, 0.95), rgba(255, 167, 132, 0.95));
+}
+
+.grammar-editor textarea::-webkit-scrollbar-corner {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .grammar-snippet-menu {
