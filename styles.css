@@ -163,7 +163,7 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 6px 14px 6px 10px;
   background: linear-gradient(135deg, var(--header-grad-start), var(--header-grad-mid), var(--header-grad-end));
 }
 
@@ -352,20 +352,23 @@ textarea {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .brand-mark {
-  width: 46px;
-  height: 46px;
+  width: 74px;
+  height: 52px;
   display: grid;
   place-items: center;
+  overflow: visible;
 }
 
 .brand-mark img {
   width: auto;
-  height: 46px;
+  height: 52px;
   display: block;
+  transform: translateX(-8px) scale(1.45);
+  transform-origin: left center;
 }
 
 .brand-text h1 {

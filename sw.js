@@ -1,4 +1,4 @@
-const CACHE_VERSION = "1.0.12";
+const CACHE_VERSION = "1.0.13";
 const CACHE_NAME = `syntaxor-shell-${CACHE_VERSION}`;
 const APP_SHELL = [
   "./",
@@ -9,6 +9,7 @@ const APP_SHELL = [
   "./syntaxor-core.js",
   "./manifest.webmanifest",
   "./images/syntaxor-logo.svg",
+  "./images/syntaxor-favicon.svg",
   "./images/preview.png"
 ];
 const APP_SHELL_FILES = ["/", "/index.html", "/styles.css", "/app.js", "/vendor/codemirror.js", "/syntaxor-core.js", "/manifest.webmanifest"];
