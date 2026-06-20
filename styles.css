@@ -61,6 +61,8 @@ body {
     var(--bg);
   color: var(--ink);
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -136,6 +138,8 @@ textarea {
   flex: 1;
   resize: vertical;
   line-height: 1.45;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .app-shell {
@@ -848,6 +852,13 @@ textarea {
   max-width: 100%;
   max-height: 100%;
   display: block;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.diagram-frame svg * {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .diagram-rule-title {
@@ -1742,6 +1753,13 @@ textarea {
   height: 100%;
   min-width: 100%;
   background: #000000;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.parse-tree-frame svg * {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .parse-tree-edge {
