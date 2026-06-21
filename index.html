@@ -54,6 +54,7 @@
       <div class="menu-inner">
         <button class="menu-item-btn" id="menuOpenFile" type="button">Open file</button>
         <button class="menu-item-btn" id="menuSaveFile" type="button">Save to file</button>
+        <button class="menu-item-btn" id="menuShare" type="button">Share URL</button>
         <button class="menu-concertina-trigger" id="menuExamplesToggle" aria-expanded="false" aria-controls="menuExamplesList" type="button">
           Examples <span class="concertina-arrow">▸</span>
         </button>
@@ -221,6 +222,19 @@
         <p><strong>Status</strong><br />The Status badge shows whether there are grammar issues (red outline) or no issues (white outline).</p>
         <p><strong>Syntax Diagram</strong><br />Use <span class="help-action-chip help-action-chip-row">SELECT RULE</span> to switch the displayed diagram between grammar rules.</p>
         <p><strong>Clear Workspace</strong><br />Use the red dustbin button in Grammar Workspace to clear grammar and test input.</p>
+      </div>
+    </div>
+
+    <div id="shareModal" class="modal-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+        <h3 id="shareModalTitle">Share URL</h3>
+        <button id="btnShareModalCloseX" class="rule-del-btn modal-close-x" type="button" aria-label="Close share dialog" title="Close share dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+        </button>
+        <p id="shareModalMessage">Copied to clipboard.</p>
+        <div class="modal-actions">
+          <button id="btnShareModalOk" type="button">OK</button>
+        </div>
       </div>
     </div>
   </div>

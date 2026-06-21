@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.22";
+const APP_VERSION = "1.0.23";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -39,6 +39,7 @@ const els = {
   appMenu: document.getElementById("appMenu"),
   menuOpenFile: document.getElementById("menuOpenFile"),
   menuSaveFile: document.getElementById("menuSaveFile"),
+  menuShare: document.getElementById("menuShare"),
   menuExamplesToggle: document.getElementById("menuExamplesToggle"),
   menuExamplesList: document.getElementById("menuExamplesList"),
   menuTasks: document.getElementById("menuTasks"),
@@ -61,6 +62,10 @@ const els = {
   btnTasksModalPrev: document.getElementById("btnTasksModalPrev"),
   btnTasksModalNext: document.getElementById("btnTasksModalNext"),
   btnTasksModalCloseX: document.getElementById("btnTasksModalCloseX"),
+  shareModal: document.getElementById("shareModal"),
+  btnShareModalOk: document.getElementById("btnShareModalOk"),
+  btnShareModalCloseX: document.getElementById("btnShareModalCloseX"),
+  shareModalMessage: document.getElementById("shareModalMessage"),
   helpModal: document.getElementById("helpModal"),
   aboutModal: document.getElementById("aboutModal"),
   btnHelpCloseX: document.getElementById("btnHelpCloseX"),
@@ -94,6 +99,7 @@ const state = {
   currentTaskIndex: 0,
   aboutModalOverlay: null,
   helpModalOverlay: null,
+  shareModalOverlay: null,
   grammarSnippetMenuOpen: false
 };
 
@@ -452,6 +458,121 @@ function loadWorkspace() {
     localStorage.removeItem(STORAGE_KEY);
     return false;
   }
+}
+
+function encodeSharePayload(payloadText) {
+  const bytes = new TextEncoder().encode(payloadText);
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function decodeSharePayload(token) {
+  if (!token) {
+    return "";
+  }
+
+  const normalized = token
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const padding = normalized.length % 4;
+  const padded = padding === 0 ? normalized : `${normalized}${"=".repeat(4 - padding)}`;
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new TextDecoder().decode(bytes);
+}
+
+function createShareSnapshot() {
+  return {
+    version: APP_VERSION,
+    grammarText: getGrammarText(),
+    selectedStartSymbol: state.selectedStartSymbol,
+    diagramRule: state.diagramRule,
+    testInput: `${els.testInput.value ?? ""}`
+  };
+}
+
+function generateShareableUrl() {
+  try {
+    const snapshot = createShareSnapshot();
+    const payload = JSON.stringify(snapshot);
+    const encoded = encodeSharePayload(payload);
+    const shareUrl = `${location.origin}${location.pathname}#share=${encoded}`;
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        openShareModal("Share URL copied to clipboard.");
+      }, () => {
+        window.prompt("Copy shareable URL", shareUrl);
+        openShareModal("Share URL shown - copy it manually.");
+      });
+      return;
+    }
+
+    window.prompt("Copy shareable URL", shareUrl);
+    openShareModal("Share URL shown - copy it manually.");
+  } catch (_error) {
+    openShareModal("Failed to generate share URL.");
+  }
+}
+
+function readSharedWorkspaceFromUrl() {
+  try {
+    const params = new URLSearchParams(location.search);
+    let encoded = "";
+
+    if (params.has("share")) {
+      encoded = params.get("share") || "";
+    } else if (location.hash.startsWith("#share=")) {
+      encoded = location.hash.slice(7);
+    }
+
+    if (!encoded) {
+      return null;
+    }
+
+    const json = decodeSharePayload(encoded);
+    if (!json) {
+      return null;
+    }
+
+    return JSON.parse(json);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function applySharedWorkspace(sharedWorkspace) {
+  if (!sharedWorkspace || typeof sharedWorkspace.grammarText !== "string") {
+    return false;
+  }
+
+  state.selectedExample = null;
+  state.grammarText = sharedWorkspace.grammarText;
+  state.selectedStartSymbol = typeof sharedWorkspace.selectedStartSymbol === "string" && sharedWorkspace.selectedStartSymbol.trim()
+    ? sharedWorkspace.selectedStartSymbol
+    : null;
+  state.diagramRule = typeof sharedWorkspace.diagramRule === "string" && sharedWorkspace.diagramRule.trim()
+    ? sharedWorkspace.diagramRule
+    : null;
+
+  if (typeof sharedWorkspace.testInput === "string") {
+    els.testInput.value = sharedWorkspace.testInput;
+  }
+
+  return true;
 }
 
 function escapeHtml(value) {
@@ -887,6 +1008,47 @@ function closeHelpModal() {
   document.body.style.overflow = "";
 }
 
+function openShareModal(message) {
+  if (!els.shareModal) {
+    return;
+  }
+
+  closeShareModal();
+  state.modalOpenedAt = performance.now();
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+  const content = els.shareModal.firstElementChild;
+  if (content) {
+    overlay.appendChild(content);
+  }
+  overlay.addEventListener("click", (event) => {
+    if (performance.now() - state.modalOpenedAt < 350) {
+      return;
+    }
+    if (event.target === overlay) {
+      closeShareModal();
+    }
+  });
+  if (els.shareModalMessage) {
+    els.shareModalMessage.textContent = message || "Share URL copied to clipboard.";
+  }
+  document.body.appendChild(overlay);
+  state.shareModalOverlay = overlay;
+}
+
+function closeShareModal() {
+  if (!state.shareModalOverlay) {
+    return;
+  }
+
+  const content = state.shareModalOverlay.firstElementChild;
+  if (content && els.shareModal) {
+    els.shareModal.appendChild(content);
+  }
+  state.shareModalOverlay.remove();
+  state.shareModalOverlay = null;
+}
+
 function parseTaskTestCase(rawValue) {
   const input = String(rawValue || "");
   const arrowParts = input.split("=>");
@@ -1308,6 +1470,11 @@ function attachEvents() {
     toggleMenu(false);
   });
 
+  els.menuShare?.addEventListener("click", () => {
+    generateShareableUrl();
+    toggleMenu(false);
+  });
+
   els.btnHamburger.addEventListener("click", () => toggleMenu());
   els.btnMenuClose.addEventListener("click", () => toggleMenu(false));
   els.menuTasks.addEventListener("click", () => {
@@ -1338,6 +1505,8 @@ function attachEvents() {
   els.btnTasksModalCloseX.addEventListener("click", closeTasksModal);
   els.btnTasksModalPrev.addEventListener("click", () => showTaskAtIndex(state.currentTaskIndex - 1));
   els.btnTasksModalNext.addEventListener("click", () => showTaskAtIndex(state.currentTaskIndex + 1));
+  els.btnShareModalOk?.addEventListener("click", closeShareModal);
+  els.btnShareModalCloseX?.addEventListener("click", closeShareModal);
   els.btnHelpCloseX.addEventListener("click", closeHelpModal);
   els.btnAboutCloseX.addEventListener("click", closeAboutModal);
   els.aboutShowOnStartup.addEventListener("change", () => {
@@ -1385,6 +1554,11 @@ function attachEvents() {
 
     if (event.key === "Escape" && state.tasksModalOverlay) {
       closeTasksModal();
+      return;
+    }
+
+    if (event.key === "Escape" && state.shareModalOverlay) {
+      closeShareModal();
       return;
     }
 
@@ -1464,8 +1638,9 @@ function init() {
 
   populateExamples();
   initGrammarEditor();
-  const restoredFromStorage = loadWorkspace();
-  if (!restoredFromStorage) {
+  const restoredFromShare = applySharedWorkspace(readSharedWorkspaceFromUrl());
+  const restoredFromStorage = !restoredFromShare && loadWorkspace();
+  if (!restoredFromShare && !restoredFromStorage) {
     state.selectedExample = DEFAULT_EXAMPLE_KEY;
     state.grammarText = EXAMPLES[DEFAULT_EXAMPLE_KEY].grammar;
     state.selectedStartSymbol = "expression";
