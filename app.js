@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.25";
+const APP_VERSION = "1.0.26";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -1271,7 +1271,7 @@ async function openTasksModal() {
     return;
   }
 
-  sendGoatCounterEvent("tasks_modal_open");
+  sendGoatCounterEvent("Syntaxor_tasks_modal_open");
   state.modalOpenedAt = performance.now();
   renderTasksModal();
   const overlay = document.createElement("div");
