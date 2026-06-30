@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.24";
+const APP_VERSION = "1.0.25";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -363,6 +363,23 @@ function downloadTextFile(content, filename) {
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function sendGoatCounterEvent(eventName) {
+  if (!eventName || typeof window === "undefined") {
+    return;
+  }
+
+  const goatcounter = window.goatcounter;
+  if (!goatcounter || typeof goatcounter.count !== "function") {
+    return;
+  }
+
+  goatcounter.count({
+    event: true,
+    path: eventName,
+    title: eventName
+  });
 }
 
 function loadGrammarFromText(grammarText) {
@@ -1254,6 +1271,7 @@ async function openTasksModal() {
     return;
   }
 
+  sendGoatCounterEvent("tasks_modal_open");
   state.modalOpenedAt = performance.now();
   renderTasksModal();
   const overlay = document.createElement("div");
