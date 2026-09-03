@@ -12,7 +12,7 @@ import {
   historyKeymap
 } from "./vendor/codemirror.js";
 
-const APP_VERSION = "1.0.27";
+const APP_VERSION = "1.0.28";
 const STORAGE_KEY = "syntaxor.workspace.v1";
 const ABOUT_SHOW_ON_START_KEY = "syntaxor.about.showOnStart";
 const DEFAULT_EXAMPLE_KEY = "arithmetic";
@@ -1475,6 +1475,7 @@ function attachEvents() {
     }
 
     applyExample(target.dataset.exampleKey);
+    sendGoatCounterEvent("Syntaxor - example opened");
     toggleMenu(false);
   });
 
